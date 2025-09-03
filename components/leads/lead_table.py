@@ -203,8 +203,6 @@ class LeadTable:
         
         with col4:
             if st.button("🗑️ Elimina Lead", use_container_width=True):
-                # Debug: mostra le colonne del DataFrame
-                st.write("Debug - Colonne DataFrame:", list(df.columns))
                 self.show_delete_lead_modal(df)
         
         with col5:
@@ -297,8 +295,15 @@ class LeadTable:
             st.write("Colonne disponibili:", list(df.columns))
             return
         
-        if 'first_name' not in df.columns or 'last_name' not in df.columns:
-            st.error("❌ Errore: colonne 'first_name' o 'last_name' non trovate")
+        # Gestisce sia formato Supabase (name) che SQLite (first_name + last_name)
+        if 'name' in df.columns:
+            # Formato Supabase: usa la colonna 'name'
+            name_column = 'name'
+        elif 'first_name' in df.columns and 'last_name' in df.columns:
+            # Formato SQLite: combina first_name + last_name
+            name_column = 'combined'
+        else:
+            st.error("❌ Errore: colonne nome non trovate (né 'name' né 'first_name'/'last_name')")
             st.write("Colonne disponibili:", list(df.columns))
             return
         
@@ -307,7 +312,13 @@ class LeadTable:
         
         for index, row in df.iterrows():
             lead_id = row['id']
-            lead_name = f"{row['first_name']} {row['last_name']}"
+            
+            # Determina il nome del lead
+            if name_column == 'name':
+                lead_name = row['name']
+            else:
+                lead_name = f"{row['first_name']} {row['last_name']}"
+            
             lead_company = row['company'] or 'N/A'
             
             # Checkbox per selezionare il lead
