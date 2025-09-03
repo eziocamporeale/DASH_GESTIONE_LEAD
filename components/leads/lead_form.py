@@ -62,9 +62,24 @@ class LeadForm:
             col1, col2 = st.columns(2)
             
             with col1:
+                # Gestisce sia formato Supabase (name) che SQLite (first_name + last_name)
+                if lead_data and 'name' in lead_data and lead_data['name']:
+                    # Formato Supabase: dividi name in first_name e last_name
+                    name_parts = lead_data['name'].split(' ', 1)
+                    default_first_name = name_parts[0] if name_parts else ''
+                    default_last_name = name_parts[1] if len(name_parts) > 1 else ''
+                elif lead_data and 'first_name' in lead_data and 'last_name' in lead_data:
+                    # Formato SQLite: usa first_name e last_name
+                    default_first_name = lead_data.get('first_name', '')
+                    default_last_name = lead_data.get('last_name', '')
+                else:
+                    # Nuovo lead
+                    default_first_name = ''
+                    default_last_name = ''
+                
                 first_name = st.text_input(
                     "Nome *",
-                    value=lead_data.get('first_name', '') if lead_data else '',
+                    value=default_first_name,
                     help="Nome del lead"
                 )
                 
@@ -83,7 +98,7 @@ class LeadForm:
             with col2:
                 last_name = st.text_input(
                     "Cognome *",
-                    value=lead_data.get('last_name', '') if lead_data else '',
+                    value=default_last_name,
                     help="Cognome del lead"
                 )
                 
@@ -143,7 +158,10 @@ class LeadForm:
             
             with col3:
                 # Assegnazione
-                current_assigned = lead_data.get('assigned_first_name', '') + ' ' + lead_data.get('assigned_last_name', '') if lead_data and lead_data.get('assigned_first_name') else ''
+                if lead_data and 'assigned_first_name' in lead_data and 'assigned_last_name' in lead_data and lead_data.get('assigned_first_name'):
+                    current_assigned = f"{lead_data['assigned_first_name']} {lead_data['assigned_last_name']}"
+                else:
+                    current_assigned = ''
                 assigned_user = st.selectbox(
                     "Assegnato a",
                     options=[""] + list(users_options.keys()),
@@ -214,10 +232,10 @@ class LeadForm:
                     'phone': phone.strip() if phone else None,
                     'company': company.strip() if company else None,
                     'position': position.strip() if position else None,
-                    'state_id': states_options[state_name],
-                    'priority_id': priorities_options[priority_name],
-                    'category_id': categories_options[category_name],
-                    'source_id': sources_options[source_name],
+                    'lead_state_id': states_options[state_name],
+                    'lead_priority_id': priorities_options[priority_name],
+                    'lead_category_id': categories_options[category_name],
+                    'lead_source_id': sources_options[source_name],
                     'assigned_to': users_options[assigned_user] if assigned_user else None,
                     'budget': budget if budget > 0 else None,
                     'expected_close_date': close_date.isoformat() if close_date else None,

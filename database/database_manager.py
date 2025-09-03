@@ -263,50 +263,93 @@ class DatabaseManager:
             except Exception as e:
                 logger.error(f"❌ Errore get_leads Supabase: {e}")
                 return []
+    
+    def get_lead(self, lead_id: int) -> Optional[Dict]:
+        """Ottiene un singolo lead per ID"""
+        if self.use_supabase:
+            try:
+                result = self.supabase.table('leads').select('*').eq('id', lead_id).execute()
+                if result.data:
+                    lead = result.data[0]
+                    
+                    # Ottieni i dati di lookup
+                    if lead.get('state_id'):
+                        state_result = self.supabase.table('lead_states').select('id,name').eq('id', lead['state_id']).execute()
+                        if state_result.data:
+                            lead['state_name'] = state_result.data[0]['name']
+                        else:
+                            lead['state_name'] = 'N/A'
+                    
+                    if lead.get('priority_id'):
+                        priority_result = self.supabase.table('lead_priorities').select('id,name').eq('id', lead['priority_id']).execute()
+                        if priority_result.data:
+                            lead['priority_name'] = priority_result.data[0]['name']
+                        else:
+                            lead['priority_name'] = 'N/A'
+                    
+                    if lead.get('category_id'):
+                        category_result = self.supabase.table('lead_categories').select('id,name').eq('id', lead['category_id']).execute()
+                        if category_result.data:
+                            lead['category_name'] = category_result.data[0]['name']
+                        else:
+                            lead['category_name'] = 'N/A'
+                    
+                    if lead.get('source_id'):
+                        source_result = self.supabase.table('lead_sources').select('id,name').eq('id', lead['source_id']).execute()
+                        if source_result.data:
+                            lead['source_name'] = source_result.data[0]['name']
+                        else:
+                            lead['source_name'] = 'N/A'
+                    
+                    if lead.get('assigned_to'):
+                        user_result = self.supabase.table('users').select('id,first_name,last_name').eq('id', lead['assigned_to']).execute()
+                        if user_result.data:
+                            user = user_result.data[0]
+                            lead['assigned_first_name'] = user.get('first_name', '')
+                            lead['assigned_last_name'] = user.get('last_name', '')
+                        else:
+                            lead['assigned_first_name'] = ''
+                            lead['assigned_last_name'] = ''
+                    else:
+                        lead['assigned_first_name'] = ''
+                        lead['assigned_last_name'] = ''
+                    
+                    # Mappa name in first_name e last_name per compatibilità
+                    if 'name' in lead and lead['name']:
+                        name_parts = lead['name'].split(' ', 1)
+                        lead['first_name'] = name_parts[0] if name_parts else ''
+                        lead['last_name'] = name_parts[1] if len(name_parts) > 1 else ''
+                    else:
+                        lead['first_name'] = ''
+                        lead['last_name'] = ''
+                    
+                    return lead
+                return None
+            except Exception as e:
+                logger.error(f"❌ Errore get_lead Supabase: {e}")
+                return None
         else:
-            base_query = """
+            # SQLite implementation
+            query = """
                 SELECT l.*, 
                        ls.name as state_name,
                        lp.name as priority_name,
                        lc.name as category_name,
                        ls2.name as source_name,
-                       u.first_name || ' ' || u.last_name as assigned_to_name
+                       u.first_name as assigned_first_name,
+                       u.last_name as assigned_last_name
                 FROM leads l
                 LEFT JOIN lead_states ls ON l.state_id = ls.id
                 LEFT JOIN lead_priorities lp ON l.priority_id = lp.id
                 LEFT JOIN lead_categories lc ON l.category_id = lc.id
                 LEFT JOIN lead_sources ls2 ON l.source_id = ls2.id
                 LEFT JOIN users u ON l.assigned_to = u.id
+                WHERE l.id = ?
             """
-            
-            where_conditions = []
-            params = []
-            
-            if filters:
-                if filters.get('state_id'):
-                    where_conditions.append("l.state_id = ?")
-                    params.append(filters['state_id'])
-                
-                if filters.get('category_id'):
-                    where_conditions.append("l.category_id = ?")
-                    params.append(filters['category_id'])
-                
-                if filters.get('assigned_to'):
-                    where_conditions.append("l.assigned_to = ?")
-                    params.append(filters['assigned_to'])
-                
-                if filters.get('search'):
-                    search_term = f"%{filters['search']}%"
-                    where_conditions.append("(l.name LIKE ? OR l.email LIKE ? OR l.company LIKE ?)")
-                    params.extend([search_term, search_term, search_term])
-            
-            if where_conditions:
-                base_query += " WHERE " + " AND ".join(where_conditions)
-            
-            base_query += " ORDER BY l.created_at DESC LIMIT ? OFFSET ?"
-            params.extend([limit, offset])
-            
-            return self.execute_query(base_query, tuple(params))
+            result = self.execute_query(query, (lead_id,))
+            if result:
+                return result[0]
+            return None
     
     def create_lead(self, lead_data: Dict) -> bool:
         """Crea un nuovo lead"""
