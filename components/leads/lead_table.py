@@ -104,6 +104,8 @@ class LeadTable:
         
         if not leads:
             st.info("📭 Nessun lead trovato con i filtri selezionati")
+            # Mostra comunque le azioni rapide anche quando non ci sono lead
+            self.render_lead_actions_empty()
             return
         
         # Converti in DataFrame
@@ -178,6 +180,32 @@ class LeadTable:
             
             # Azioni sui lead (usa il DataFrame originale con tutti i dati)
             self.render_lead_actions(df)
+    
+    def render_lead_actions_empty(self):
+        """Renderizza le azioni rapide quando non ci sono lead"""
+        
+        st.markdown("### ⚡ Azioni Rapide")
+        
+        col1, col2, col3, col4, col5 = st.columns(5)
+        
+        with col1:
+            if st.button("📝 Nuovo Lead", use_container_width=True):
+                st.session_state['show_lead_form'] = True
+                st.session_state['lead_form_mode'] = 'create'
+                st.rerun()
+        
+        with col2:
+            st.button("📊 Export Excel", use_container_width=True, disabled=True, help="Nessun dato da esportare")
+        
+        with col3:
+            st.button("📈 Analytics", use_container_width=True, disabled=True, help="Nessun dato per analytics")
+        
+        with col4:
+            st.button("🗑️ Elimina Lead", use_container_width=True, disabled=True, help="Nessun lead da eliminare")
+        
+        with col5:
+            if st.button("🔄 Aggiorna", use_container_width=True):
+                st.rerun()
     
     def render_lead_actions(self, df: pd.DataFrame):
         """Renderizza le azioni sui lead"""
