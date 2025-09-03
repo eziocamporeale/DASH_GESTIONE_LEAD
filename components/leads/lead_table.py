@@ -184,7 +184,7 @@ class LeadTable:
         
         st.markdown("### ⚡ Azioni Rapide")
         
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns(5)
         
         with col1:
             if st.button("📝 Nuovo Lead", use_container_width=True):
@@ -202,6 +202,10 @@ class LeadTable:
                 st.rerun()
         
         with col4:
+            if st.button("🗑️ Elimina Lead", use_container_width=True):
+                self.show_delete_lead_modal(df)
+        
+        with col5:
             if st.button("🔄 Aggiorna", use_container_width=True):
                 st.rerun()
     
@@ -278,6 +282,86 @@ class LeadTable:
                         st.rerun()
                     else:
                         st.error("❌ Errore durante l'eliminazione")
+    
+    def show_delete_lead_modal(self, df: pd.DataFrame):
+        """Mostra il modal per eliminare lead selezionati"""
+        
+        st.markdown("### 🗑️ Elimina Lead")
+        st.markdown("Seleziona i lead da eliminare:")
+        
+        # Crea una lista di lead con checkbox
+        selected_leads = []
+        
+        for index, row in df.iterrows():
+            lead_id = row['id']
+            lead_name = f"{row['first_name']} {row['last_name']}"
+            lead_company = row['company'] or 'N/A'
+            
+            # Checkbox per selezionare il lead
+            if st.checkbox(
+                f"🗑️ {lead_name} - {lead_company}",
+                key=f"delete_lead_{lead_id}",
+                help=f"Seleziona per eliminare {lead_name}"
+            ):
+                selected_leads.append({
+                    'id': lead_id,
+                    'name': lead_name,
+                    'company': lead_company
+                })
+        
+        # Pulsante per confermare l'eliminazione
+        if selected_leads:
+            st.markdown(f"**Lead selezionati per eliminazione: {len(selected_leads)}**")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if st.button("✅ Conferma Eliminazione", type="primary", use_container_width=True):
+                    self.delete_selected_leads(selected_leads)
+            
+            with col2:
+                if st.button("❌ Annulla", use_container_width=True):
+                    st.rerun()
+        else:
+            st.info("ℹ️ Seleziona almeno un lead per eliminare")
+    
+    def delete_selected_leads(self, selected_leads: List[Dict]):
+        """Elimina i lead selezionati"""
+        
+        if not selected_leads:
+            st.warning("⚠️ Nessun lead selezionato")
+            return
+        
+        # Conferma finale
+        lead_names = [lead['name'] for lead in selected_leads]
+        confirm_text = f"Sei sicuro di voler eliminare {len(selected_leads)} lead?\n\n"
+        confirm_text += "\n".join([f"• {name}" for name in lead_names])
+        
+        if st.confirm(confirm_text):
+            success_count = 0
+            error_count = 0
+            
+            # Elimina ogni lead
+            for lead in selected_leads:
+                try:
+                    if self.db.delete_lead(lead['id']):
+                        success_count += 1
+                        st.success(f"✅ Eliminato: {lead['name']}")
+                    else:
+                        error_count += 1
+                        st.error(f"❌ Errore eliminazione: {lead['name']}")
+                except Exception as e:
+                    error_count += 1
+                    st.error(f"❌ Errore eliminazione {lead['name']}: {e}")
+            
+            # Riepilogo finale
+            if success_count > 0:
+                st.success(f"✅ Eliminazione completata: {success_count} lead eliminati")
+                if error_count > 0:
+                    st.warning(f"⚠️ {error_count} lead non eliminati per errori")
+                st.rerun()
+            else:
+                st.error("❌ Nessun lead eliminato")
     
     def export_to_excel(self, df: pd.DataFrame):
         """Esporta i lead in Excel"""
