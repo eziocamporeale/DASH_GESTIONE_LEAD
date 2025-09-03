@@ -140,29 +140,13 @@ class BrokerLinksManager:
                 help="Attiva/disattiva il link"
             )
             
-            # Validazione
-            validation_errors = []
-            if not broker_name.strip():
-                validation_errors.append("❌ Nome broker obbligatorio")
-            
-            if not affiliate_link.strip():
-                validation_errors.append("❌ Link affiliate obbligatorio")
-            elif not self.is_valid_url(affiliate_link):
-                validation_errors.append("❌ Link affiliate non valido")
-            
-            # Mostra errori di validazione
-            if validation_errors:
-                for error in validation_errors:
-                    st.error(error)
-            
             # Pulsanti
             col1, col2, col3 = st.columns(3)
             
             with col1:
                 submitted = st.form_submit_button(
                     "💾 Salva Link",
-                    type="primary",
-                    disabled=len(validation_errors) > 0
+                    type="primary"
                 )
             
             with col2:
@@ -179,7 +163,24 @@ class BrokerLinksManager:
                     st.rerun()
             
             # Gestione submit
-            if submitted and len(validation_errors) == 0:
+            if submitted:
+                # Validazione al momento del submit
+                validation_errors = []
+                if not broker_name.strip():
+                    validation_errors.append("❌ Nome broker obbligatorio")
+                
+                if not affiliate_link.strip():
+                    validation_errors.append("❌ Link affiliate obbligatorio")
+                elif not self.is_valid_url(affiliate_link):
+                    validation_errors.append("❌ Link affiliate non valido")
+                
+                # Mostra errori di validazione
+                if validation_errors:
+                    for error in validation_errors:
+                        st.error(error)
+                    return  # Non procedere se ci sono errori
+                
+                # Se non ci sono errori, procedi con il salvataggio
                 if editing_link:
                     # Modifica link esistente
                     success = self.db.update_broker_link(

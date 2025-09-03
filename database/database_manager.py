@@ -890,7 +890,23 @@ class DatabaseManager:
         """Crea un nuovo utente"""
         if self.use_supabase:
             try:
-                result = self.supabase.table('users').insert(user_data).execute()
+                # Mappa i dati per la struttura corretta di Supabase
+                supabase_data = {
+                    'username': user_data.get('username', user_data.get('email', '')),  # Usa email come username se non fornito
+                    'email': user_data.get('email', ''),
+                    'password_hash': user_data.get('password_hash', ''),  # Usa password_hash invece di password
+                    'first_name': user_data.get('first_name', ''),
+                    'last_name': user_data.get('last_name', ''),
+                    'phone': user_data.get('phone', ''),
+                    'role_id': user_data.get('role_id', 1),  # Default role_id = 1
+                    'is_active': user_data.get('is_active', True),
+                    'is_admin': user_data.get('is_admin', False),
+                    'notes': user_data.get('notes', ''),
+                    'department_id': user_data.get('department_id'),
+                    'created_by': user_data.get('created_by')
+                }
+                
+                result = self.supabase.table('users').insert(supabase_data).execute()
                 return len(result.data) > 0
             except Exception as e:
                 logger.error(f"❌ Errore create_user Supabase: {e}")
@@ -914,7 +930,22 @@ class DatabaseManager:
         """Aggiorna un utente esistente"""
         if self.use_supabase:
             try:
-                result = self.supabase.table('users').update(user_data).eq('id', user_id).execute()
+                # Mappa i dati per la struttura corretta di Supabase
+                supabase_data = {
+                    'username': user_data.get('username', user_data.get('email', '')),
+                    'email': user_data.get('email', ''),
+                    'password_hash': user_data.get('password_hash', ''),  # Usa password_hash invece di password
+                    'first_name': user_data.get('first_name', ''),
+                    'last_name': user_data.get('last_name', ''),
+                    'phone': user_data.get('phone', ''),
+                    'role_id': user_data.get('role_id', 1),
+                    'is_active': user_data.get('is_active', True),
+                    'is_admin': user_data.get('is_admin', False),
+                    'notes': user_data.get('notes', ''),
+                    'department_id': user_data.get('department_id')
+                }
+                
+                result = self.supabase.table('users').update(supabase_data).eq('id', user_id).execute()
                 return len(result.data) > 0
             except Exception as e:
                 logger.error(f"❌ Errore update_user Supabase: {e}")

@@ -219,9 +219,9 @@ class UserForm:
                 
                 # Gestione password
                 if mode == "create":
-                    form_data['password'] = password
+                    form_data['password_hash'] = password  # Usa password_hash per Supabase
                 elif password:  # Modifica con nuova password
-                    form_data['password'] = password
+                    form_data['password_hash'] = password  # Usa password_hash per Supabase
                 
                 # Salva nel database
                 if mode == "create":
