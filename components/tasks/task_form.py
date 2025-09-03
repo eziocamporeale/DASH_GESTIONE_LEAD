@@ -149,7 +149,16 @@ class TaskForm:
                     current_lead = task_data.get('lead_id') if task_data else None
                     if current_lead:
                         lead = self.db.get_lead(current_lead)
-                        current_lead_name = f"{lead['first_name']} {lead['last_name']} ({lead['company'] or 'N/A'})" if lead else ""
+                        if lead:
+                            if 'first_name' in lead and 'last_name' in lead:
+                                lead_name = f"{lead['first_name']} {lead['last_name']}"
+                            elif 'name' in lead:
+                                lead_name = lead['name']
+                            else:
+                                lead_name = "Lead senza nome"
+                            current_lead_name = f"{lead_name} ({lead['company'] or 'N/A'})"
+                        else:
+                            current_lead_name = ""
                     else:
                         current_lead_name = ""
                     

@@ -339,26 +339,44 @@ class ContactSequence:
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            total_sequences = stats['total_sequences'][0]['count'] if stats['total_sequences'] else 0
+            # Gestisce sia formato lista che intero
+            if isinstance(stats.get('total_sequences'), list) and stats['total_sequences']:
+                total_sequences = stats['total_sequences'][0]['count']
+            else:
+                total_sequences = stats.get('total_sequences', 0)
             st.metric("📞 Sequenze Totali", total_sequences)
         
         with col2:
-            active_sequences = stats['active_sequences'][0]['count'] if stats['active_sequences'] else 0
+            # Gestisce sia formato lista che intero
+            if isinstance(stats.get('active_sequences'), list) and stats['active_sequences']:
+                active_sequences = stats['active_sequences'][0]['count']
+            else:
+                active_sequences = stats.get('active_sequences', 0)
             st.metric("✅ Sequenze Attive", active_sequences)
         
         with col3:
-            total_contacts = stats['total_contacts'][0]['count'] if stats['total_contacts'] else 0
+            # Gestisce sia formato lista che intero
+            if isinstance(stats.get('total_contacts'), list) and stats['total_contacts']:
+                total_contacts = stats['total_contacts'][0]['count']
+            else:
+                total_contacts = stats.get('total_contacts', 0)
             st.metric("📧 Contatti Inviati", total_contacts)
         
         with col4:
-            success_rate = stats['success_rate'][0]['rate'] if stats['success_rate'] else 0
+            # Gestisce sia formato lista che intero
+            if isinstance(stats.get('success_rate'), list) and stats['success_rate']:
+                success_rate = stats['success_rate'][0]['rate']
+            else:
+                success_rate = stats.get('success_rate', 0)
             st.metric("📈 Tasso Successo", f"{success_rate:.1f}%")
         
         # Sequenze per tipo
         st.markdown("#### 📋 Sequenze per Tipo")
-        if stats['sequences_by_type']:
+        if stats.get('sequences_by_type'):
             type_df = pd.DataFrame(stats['sequences_by_type'])
             st.bar_chart(type_df.set_index('type')['count'])
+        else:
+            st.info("Nessuna sequenza trovata per la visualizzazione per tipo")
 
 def render_sequence_form_wrapper(sequence_data: Optional[Dict] = None, mode: str = "create"):
     """Wrapper per renderizzare il form sequenza"""

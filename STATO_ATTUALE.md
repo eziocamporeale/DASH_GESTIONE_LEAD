@@ -30,7 +30,7 @@
 - ✅ Login/logout funzionante
 - ✅ Gestione sessioni
 - ✅ Sistema ruoli e permessi
-- ✅ Credenziali di default: `admin` / `admin123`
+- ✅ Credenziali di default configurate (contattare amministratore)
 
 ### 📊 **Dashboard Principale**
 - ✅ Metriche KPI principali
@@ -114,7 +114,7 @@ streamlit run app.py --server.port 8501
 ### **2. Accesso**
 - **URL**: http://localhost:8501
 - **Username**: `admin`
-- **Password**: `admin123`
+- **Password**: Configurata dall'amministratore
 
 ### **3. Funzionalità da Testare**
 - ✅ Login/logout

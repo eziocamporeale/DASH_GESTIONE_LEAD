@@ -41,7 +41,7 @@ def test_admin_login():
             print(f"   Password Hash: {admin_user['password_hash'][:20]}...")
             
             # Test verifica password
-            test_password = "admin123"
+            test_password = "test_password"  # Password di test
             hashed_password = admin_user['password_hash']
             
             try:

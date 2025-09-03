@@ -149,11 +149,7 @@ def render_login_form() -> Optional[Dict]:
         st.markdown("---")
         st.markdown("""
         <div style="text-align: center; color: #666; font-size: 0.9rem;">
-            <p><strong>Credenziali di default:</strong></p>
-            <p>👤 Username: <code>admin</code></p>
-            <p>🔑 Password: <code>admin123</code></p>
-            <br>
-            <p><em>⚠️ Cambiare le credenziali in produzione!</em></p>
+            <p><em>💡 Contatta l'amministratore per le credenziali di accesso</em></p>
         </div>
         """, unsafe_allow_html=True)
         
