@@ -43,7 +43,7 @@ class TaskBoard:
             col1, col2, col3, col4, col5 = st.columns(5)
             
             with col1:
-                if st.button("📝 Nuovo Task", use_container_width=True):
+                if st.button("📝 Nuovo Task", use_container_width=True, key="new_task_empty_board"):
                     st.session_state['show_task_form'] = True
                     st.session_state['task_form_mode'] = 'create'
                     st.rerun()
@@ -58,7 +58,7 @@ class TaskBoard:
                 st.button("🗑️ Elimina Multipli", use_container_width=True, disabled=True, help="Nessun task da eliminare")
             
             with col5:
-                if st.button("🔄 Aggiorna", use_container_width=True):
+                if st.button("🔄 Aggiorna", use_container_width=True, key="refresh_empty_board"):
                     st.rerun()
             
             return
@@ -86,28 +86,28 @@ class TaskBoard:
         col1, col2, col3, col4, col5 = st.columns(5)
         
         with col1:
-            if st.button("📝 Nuovo Task", use_container_width=True):
+            if st.button("📝 Nuovo Task", use_container_width=True, key="new_task_board"):
                 st.session_state['show_task_form'] = True
                 st.session_state['task_form_mode'] = 'create'
                 st.rerun()
         
         with col2:
-            if st.button("📊 Export Excel", use_container_width=True):
+            if st.button("📊 Export Excel", use_container_width=True, key="export_board"):
                 # TODO: Implementare export Excel
                 st.info("📊 Funzionalità export in sviluppo")
         
         with col3:
-            if st.button("📈 Analytics", use_container_width=True):
+            if st.button("📈 Analytics", use_container_width=True, key="analytics_board"):
                 # TODO: Implementare analytics
                 st.info("📈 Funzionalità analytics in sviluppo")
         
         with col4:
-            if st.button("🗑️ Elimina Multipli", use_container_width=True):
+            if st.button("🗑️ Elimina Multipli", use_container_width=True, key="delete_multiple_board"):
                 # TODO: Implementare eliminazione multipla
                 st.info("🗑️ Funzionalità eliminazione multipla in sviluppo")
         
         with col5:
-            if st.button("🔄 Aggiorna", use_container_width=True):
+            if st.button("🔄 Aggiorna", use_container_width=True, key="refresh_board"):
                 st.rerun()
         
         # Statistiche rapide
@@ -301,7 +301,7 @@ class TaskBoard:
             col1, col2, col3, col4, col5 = st.columns(5)
             
             with col1:
-                if st.button("📝 Nuovo Task", use_container_width=True):
+                if st.button("📝 Nuovo Task", use_container_width=True, key="new_task_empty_list"):
                     st.session_state['show_task_form'] = True
                     st.session_state['task_form_mode'] = 'create'
                     st.rerun()
@@ -316,7 +316,7 @@ class TaskBoard:
                 st.button("🗑️ Elimina Multipli", use_container_width=True, disabled=True, help="Nessun task da eliminare")
             
             with col5:
-                if st.button("🔄 Aggiorna", use_container_width=True):
+                if st.button("🔄 Aggiorna", use_container_width=True, key="refresh_empty_list"):
                     st.rerun()
             
             return
