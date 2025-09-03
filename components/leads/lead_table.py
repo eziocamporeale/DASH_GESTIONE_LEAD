@@ -176,7 +176,7 @@ class LeadTable:
                 hide_index=True
             )
             
-            # Azioni sui lead
+            # Azioni sui lead (usa il DataFrame originale con tutti i dati)
             self.render_lead_actions(df)
     
     def render_lead_actions(self, df: pd.DataFrame):
@@ -203,6 +203,8 @@ class LeadTable:
         
         with col4:
             if st.button("🗑️ Elimina Lead", use_container_width=True):
+                # Debug: mostra le colonne del DataFrame
+                st.write("Debug - Colonne DataFrame:", list(df.columns))
                 self.show_delete_lead_modal(df)
         
         with col5:
@@ -288,6 +290,17 @@ class LeadTable:
         
         st.markdown("### 🗑️ Elimina Lead")
         st.markdown("Seleziona i lead da eliminare:")
+        
+        # Verifica che il DataFrame abbia le colonne necessarie
+        if 'id' not in df.columns:
+            st.error("❌ Errore: colonna 'id' non trovata nel DataFrame")
+            st.write("Colonne disponibili:", list(df.columns))
+            return
+        
+        if 'first_name' not in df.columns or 'last_name' not in df.columns:
+            st.error("❌ Errore: colonne 'first_name' o 'last_name' non trovate")
+            st.write("Colonne disponibili:", list(df.columns))
+            return
         
         # Crea una lista di lead con checkbox
         selected_leads = []
