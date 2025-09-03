@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS broker_links (
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL
+    created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL
 );
 
 -- Indici per performance
@@ -53,9 +53,9 @@ CREATE POLICY "Authenticated users read access" ON broker_links
         auth.uid() IS NOT NULL
     );
 
--- Inserimento dati di esempio
-INSERT INTO broker_links (broker_name, affiliate_link, created_by) VALUES
-('eToro', 'https://www.etoro.com/affiliate/example', 1),
-('Plus500', 'https://www.plus500.com/affiliate/example', 1),
-('IG Markets', 'https://www.ig.com/affiliate/example', 1)
-ON CONFLICT DO NOTHING;
+-- Inserimento dati di esempio (commentato - da inserire manualmente con UUID validi)
+-- INSERT INTO broker_links (broker_name, affiliate_link, created_by) VALUES
+-- ('eToro', 'https://www.etoro.com/affiliate/example', 'UUID-DELL-UTENTE-ADMIN'),
+-- ('Plus500', 'https://www.plus500.com/affiliate/example', 'UUID-DELL-UTENTE-ADMIN'),
+-- ('IG Markets', 'https://www.ig.com/affiliate/example', 'UUID-DELL-UTENTE-ADMIN')
+-- ON CONFLICT DO NOTHING;

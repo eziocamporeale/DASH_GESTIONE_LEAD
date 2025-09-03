@@ -1552,7 +1552,7 @@ class DatabaseManager:
     # METODI PER GESTIONE BROKER LINKS
     # ========================================
     
-    def create_broker_link(self, broker_name: str, affiliate_link: str, created_by: int) -> Optional[int]:
+    def create_broker_link(self, broker_name: str, affiliate_link: str, created_by: str) -> Optional[int]:
         """Crea un nuovo link broker"""
         if self.use_supabase:
             try:

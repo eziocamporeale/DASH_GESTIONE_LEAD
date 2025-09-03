@@ -197,8 +197,11 @@ class BrokerLinksManager:
                         st.error("❌ Errore aggiornamento link broker")
                 else:
                     # Crea nuovo link
-                    # Ottieni user_id dalla sessione
-                    user_id = st.session_state.get('user_id', 1)  # Default a 1 se non disponibile
+                    # Ottieni user_id dalla sessione (UUID per Supabase)
+                    user_id = st.session_state.get('user_id', None)  # UUID per Supabase
+                    if not user_id:
+                        st.error("❌ Errore: ID utente non disponibile")
+                        return
                     
                     link_id = self.db.create_broker_link(
                         broker_name.strip(),
