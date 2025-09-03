@@ -249,6 +249,15 @@ class DatabaseManager:
                         else:
                             lead['assigned_first_name'] = ''
                             lead['assigned_last_name'] = ''
+                        
+                        # Mappa name in first_name e last_name per compatibilità
+                        if 'name' in lead and lead['name']:
+                            name_parts = lead['name'].split(' ', 1)
+                            lead['first_name'] = name_parts[0] if name_parts else ''
+                            lead['last_name'] = name_parts[1] if len(name_parts) > 1 else ''
+                        else:
+                            lead['first_name'] = ''
+                            lead['last_name'] = ''
                 
                 return leads
             except Exception as e:
@@ -303,7 +312,25 @@ class DatabaseManager:
         """Crea un nuovo lead"""
         if self.use_supabase:
             try:
-                result = self.supabase.table('leads').insert(lead_data).execute()
+                # Mappa i dati per la struttura corretta di Supabase
+                supabase_data = {
+                    'name': f"{lead_data.get('first_name', '')} {lead_data.get('last_name', '')}".strip(),
+                    'email': lead_data.get('email', ''),
+                    'phone': lead_data.get('phone', ''),
+                    'company': lead_data.get('company', ''),
+                    'position': lead_data.get('position', ''),
+                    'budget': lead_data.get('budget', ''),
+                    'expected_close_date': lead_data.get('expected_close_date', ''),
+                    'category_id': lead_data.get('lead_category_id'),
+                    'state_id': lead_data.get('lead_state_id'),
+                    'priority_id': lead_data.get('lead_priority_id'),
+                    'source_id': lead_data.get('lead_source_id'),
+                    'assigned_to': lead_data.get('assigned_to'),
+                    'notes': lead_data.get('notes', ''),
+                    'created_by': lead_data.get('created_by')
+                }
+                
+                result = self.supabase.table('leads').insert(supabase_data).execute()
                 return len(result.data) > 0
             except Exception as e:
                 logger.error(f"❌ Errore create_lead Supabase: {e}")
@@ -330,7 +357,25 @@ class DatabaseManager:
         """Aggiorna un lead esistente"""
         if self.use_supabase:
             try:
-                result = self.supabase.table('leads').update(lead_data).eq('id', lead_id).execute()
+                # Mappa i dati per la struttura corretta di Supabase
+                supabase_data = {
+                    'name': f"{lead_data.get('first_name', '')} {lead_data.get('last_name', '')}".strip(),
+                    'email': lead_data.get('email', ''),
+                    'phone': lead_data.get('phone', ''),
+                    'company': lead_data.get('company', ''),
+                    'position': lead_data.get('position', ''),
+                    'budget': lead_data.get('budget', ''),
+                    'expected_close_date': lead_data.get('expected_close_date', ''),
+                    'category_id': lead_data.get('lead_category_id'),
+                    'state_id': lead_data.get('lead_state_id'),
+                    'priority_id': lead_data.get('lead_priority_id'),
+                    'source_id': lead_data.get('lead_source_id'),
+                    'assigned_to': lead_data.get('assigned_to'),
+                    'notes': lead_data.get('notes', ''),
+                    'created_by': lead_data.get('created_by')
+                }
+                
+                result = self.supabase.table('leads').update(supabase_data).eq('id', lead_id).execute()
                 return len(result.data) > 0
             except Exception as e:
                 logger.error(f"❌ Errore update_lead Supabase: {e}")
