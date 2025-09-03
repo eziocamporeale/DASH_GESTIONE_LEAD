@@ -1548,6 +1548,187 @@ class DatabaseManager:
         if not self.use_supabase and hasattr(self, 'conn'):
             self.conn.close()
 
+    # ========================================
+    # METODI PER GESTIONE BROKER LINKS
+    # ========================================
+    
+    def create_broker_link(self, broker_name: str, affiliate_link: str, created_by: int) -> Optional[int]:
+        """Crea un nuovo link broker"""
+        if self.use_supabase:
+            try:
+                data = {
+                    'broker_name': broker_name,
+                    'affiliate_link': affiliate_link,
+                    'created_by': created_by,
+                    'is_active': True
+                }
+                result = self.supabase.table('broker_links').insert(data).execute()
+                if result.data:
+                    return result.data[0]['id']
+                return None
+            except Exception as e:
+                logger.error(f"❌ Errore create_broker_link Supabase: {e}")
+                return None
+        else:
+            query = """
+                INSERT INTO broker_links (broker_name, affiliate_link, created_by, is_active, created_at, updated_at)
+                VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
+            """
+            try:
+                cursor = self.conn.cursor()
+                cursor.execute(query, (broker_name, affiliate_link, created_by, True))
+                self.conn.commit()
+                return cursor.lastrowid
+            except Exception as e:
+                logger.error(f"❌ Errore create_broker_link SQLite: {e}")
+                self.conn.rollback()
+                return None
+    
+    def get_broker_links(self, active_only: bool = True) -> List[Dict]:
+        """Ottiene tutti i link broker"""
+        if self.use_supabase:
+            try:
+                query = self.supabase.table('broker_links').select('*')
+                if active_only:
+                    query = query.eq('is_active', True)
+                query = query.order('created_at', desc=True)
+                result = query.execute()
+                return result.data
+            except Exception as e:
+                logger.error(f"❌ Errore get_broker_links Supabase: {e}")
+                return []
+        else:
+            query = """
+                SELECT bl.*, u.first_name, u.last_name 
+                FROM broker_links bl
+                LEFT JOIN users u ON bl.created_by = u.id
+                WHERE bl.is_active = ?
+                ORDER BY bl.created_at DESC
+            """
+            return self.execute_query(query, (active_only,))
+    
+    def get_broker_link(self, link_id: int) -> Optional[Dict]:
+        """Ottiene un singolo link broker"""
+        if self.use_supabase:
+            try:
+                result = self.supabase.table('broker_links').select('*').eq('id', link_id).execute()
+                return result.data[0] if result.data else None
+            except Exception as e:
+                logger.error(f"❌ Errore get_broker_link Supabase: {e}")
+                return None
+        else:
+            query = """
+                SELECT bl.*, u.first_name, u.last_name 
+                FROM broker_links bl
+                LEFT JOIN users u ON bl.created_by = u.id
+                WHERE bl.id = ?
+            """
+            results = self.execute_query(query, (link_id,))
+            return results[0] if results else None
+    
+    def update_broker_link(self, link_id: int, broker_name: str, affiliate_link: str, is_active: bool = True) -> bool:
+        """Aggiorna un link broker"""
+        if self.use_supabase:
+            try:
+                data = {
+                    'broker_name': broker_name,
+                    'affiliate_link': affiliate_link,
+                    'is_active': is_active
+                }
+                result = self.supabase.table('broker_links').update(data).eq('id', link_id).execute()
+                return len(result.data) > 0
+            except Exception as e:
+                logger.error(f"❌ Errore update_broker_link Supabase: {e}")
+                return False
+        else:
+            query = """
+                UPDATE broker_links 
+                SET broker_name = ?, affiliate_link = ?, is_active = ?, updated_at = datetime('now')
+                WHERE id = ?
+            """
+            return self.execute_update(query, (broker_name, affiliate_link, is_active, link_id)) > 0
+    
+    def delete_broker_link(self, link_id: int) -> bool:
+        """Elimina un link broker"""
+        if self.use_supabase:
+            try:
+                result = self.supabase.table('broker_links').delete().eq('id', link_id).execute()
+                return len(result.data) > 0
+            except Exception as e:
+                logger.error(f"❌ Errore delete_broker_link Supabase: {e}")
+                return False
+        else:
+            query = "DELETE FROM broker_links WHERE id = ?"
+            return self.execute_update(query, (link_id,)) > 0
+    
+    def toggle_broker_link_status(self, link_id: int) -> bool:
+        """Attiva/disattiva un link broker"""
+        if self.use_supabase:
+            try:
+                # Prima ottieni lo stato attuale
+                current = self.get_broker_link(link_id)
+                if current is None:
+                    return False
+                
+                new_status = not current.get('is_active', True)
+                result = self.supabase.table('broker_links').update({'is_active': new_status}).eq('id', link_id).execute()
+                return len(result.data) > 0
+            except Exception as e:
+                logger.error(f"❌ Errore toggle_broker_link_status Supabase: {e}")
+                return False
+        else:
+            query = """
+                UPDATE broker_links 
+                SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END,
+                    updated_at = datetime('now')
+                WHERE id = ?
+            """
+            return self.execute_update(query, (link_id,)) > 0
+    
+    def get_broker_links_stats(self) -> Dict:
+        """Ottiene le statistiche dei link broker"""
+        if self.use_supabase:
+            try:
+                all_links = self.supabase.table('broker_links').select('*').execute()
+                links = all_links.data
+                
+                total_links = len(links)
+                active_links = len([l for l in links if l.get('is_active', False)])
+                inactive_links = total_links - active_links
+                
+                return {
+                    'total_links': total_links,
+                    'active_links': active_links,
+                    'inactive_links': inactive_links
+                }
+            except Exception as e:
+                logger.error(f"❌ Errore get_broker_links_stats Supabase: {e}")
+                return {
+                    'total_links': 0,
+                    'active_links': 0,
+                    'inactive_links': 0
+                }
+        else:
+            query = """
+                SELECT 
+                    COUNT(*) as total_links,
+                    SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_links,
+                    SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) as inactive_links
+                FROM broker_links
+            """
+            results = self.execute_query(query)
+            if results:
+                return {
+                    'total_links': results[0]['total_links'],
+                    'active_links': results[0]['active_links'],
+                    'inactive_links': results[0]['inactive_links']
+                }
+            return {
+                'total_links': 0,
+                'active_links': 0,
+                'inactive_links': 0
+            }
+
 # Test della classe
 if __name__ == "__main__":
     db = DatabaseManager()
@@ -1561,5 +1742,13 @@ if __name__ == "__main__":
     print("📊 Test statistiche...")
     lead_stats = db.get_lead_stats()
     print(f"📈 Stati lead: {len(lead_stats['leads_by_state'])}")
+    
+    # Test broker links (se la tabella esiste)
+    print("🔗 Test broker links...")
+    try:
+        broker_stats = db.get_broker_links_stats()
+        print(f"📊 Statistiche broker: {broker_stats}")
+    except Exception as e:
+        print(f"⚠️ Tabella broker_links non ancora creata: {e}")
     
     print("✅ Database Manager testato con successo!")

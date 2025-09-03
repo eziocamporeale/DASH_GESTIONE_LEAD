@@ -30,6 +30,7 @@ from components.users.user_management import render_user_management_wrapper
 from components.contacts.contact_template import render_template_form_wrapper
 from components.contacts.contact_sequence import render_sequence_form_wrapper, render_sequence_list_wrapper, render_sequence_stats_wrapper
 from components.settings.settings_manager import render_settings_wrapper
+from components.broker_links.broker_links_manager import BrokerLinksManager
 
 # Configurazione pagina
 st.set_page_config(
@@ -488,6 +489,13 @@ def render_settings_page():
     """Renderizza la pagina di impostazioni"""
     render_settings_wrapper()
 
+def render_broker_links_page():
+    """Renderizza la pagina dei link broker"""
+    # Inizializza il database manager
+    db = DatabaseManager()
+    broker_manager = BrokerLinksManager(db)
+    broker_manager.render_broker_links_page()
+
 def main():
     """Funzione principale dell'applicazione"""
     
@@ -515,6 +523,7 @@ def main():
                 "✅ Gestione Task",
                 "👤 Gestione Utenti",
                 "📞 Gestione Contatti",
+                "🔗 Link Broker",
                 "📊 Report e Analytics",
                 "⚙️ Impostazioni"
             ]
@@ -536,6 +545,8 @@ def main():
         render_users_page()
     elif page == "📞 Gestione Contatti":
         render_contacts_page()
+    elif page == "🔗 Link Broker":
+        render_broker_links_page()
     elif page == "📊 Report e Analytics":
         render_reports_page()
     elif page == "⚙️ Impostazioni":
