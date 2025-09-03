@@ -1729,6 +1729,234 @@ class DatabaseManager:
                 'inactive_links': 0
             }
 
+    # ========================================
+    # METODI PER GESTIONE SCRIPTS
+    # ========================================
+    
+    def create_script(self, title: str, content: str, script_type: str, category: str, created_by: str) -> Optional[int]:
+        """Crea un nuovo script"""
+        if self.use_supabase:
+            try:
+                data = {
+                    'title': title,
+                    'content': content,
+                    'script_type': script_type,
+                    'category': category,
+                    'created_by': created_by,
+                    'is_active': True
+                }
+                result = self.supabase.table('scripts').insert(data).execute()
+                if result.data:
+                    return result.data[0]['id']
+                return None
+            except Exception as e:
+                logger.error(f"❌ Errore create_script Supabase: {e}")
+                return None
+        else:
+            query = """
+                INSERT INTO scripts (title, content, script_type, category, created_by, is_active, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+            """
+            try:
+                cursor = self.conn.cursor()
+                cursor.execute(query, (title, content, script_type, category, created_by, True))
+                self.conn.commit()
+                return cursor.lastrowid
+            except Exception as e:
+                logger.error(f"❌ Errore create_script SQLite: {e}")
+                self.conn.rollback()
+                return None
+    
+    def get_scripts(self, active_only: bool = True, script_type: str = None, category: str = None) -> List[Dict]:
+        """Ottiene tutti gli script con filtri opzionali"""
+        if self.use_supabase:
+            try:
+                query = self.supabase.table('scripts').select('*')
+                if active_only:
+                    query = query.eq('is_active', True)
+                if script_type:
+                    query = query.eq('script_type', script_type)
+                if category:
+                    query = query.eq('category', category)
+                query = query.order('created_at', desc=True)
+                result = query.execute()
+                return result.data
+            except Exception as e:
+                logger.error(f"❌ Errore get_scripts Supabase: {e}")
+                return []
+        else:
+            conditions = ["s.is_active = ?"]
+            params = [active_only]
+            
+            if script_type:
+                conditions.append("s.script_type = ?")
+                params.append(script_type)
+            if category:
+                conditions.append("s.category = ?")
+                params.append(category)
+            
+            where_clause = " AND ".join(conditions)
+            query = f"""
+                SELECT s.*, u.first_name, u.last_name 
+                FROM scripts s
+                LEFT JOIN users u ON s.created_by = u.id
+                WHERE {where_clause}
+                ORDER BY s.created_at DESC
+            """
+            return self.execute_query(query, tuple(params))
+    
+    def get_script(self, script_id: int) -> Optional[Dict]:
+        """Ottiene un singolo script"""
+        if self.use_supabase:
+            try:
+                result = self.supabase.table('scripts').select('*').eq('id', script_id).execute()
+                return result.data[0] if result.data else None
+            except Exception as e:
+                logger.error(f"❌ Errore get_script Supabase: {e}")
+                return None
+        else:
+            query = """
+                SELECT s.*, u.first_name, u.last_name 
+                FROM scripts s
+                LEFT JOIN users u ON s.created_by = u.id
+                WHERE s.id = ?
+            """
+            results = self.execute_query(query, (script_id,))
+            return results[0] if results else None
+    
+    def update_script(self, script_id: int, title: str, content: str, script_type: str, category: str, is_active: bool = True) -> bool:
+        """Aggiorna un script"""
+        if self.use_supabase:
+            try:
+                data = {
+                    'title': title,
+                    'content': content,
+                    'script_type': script_type,
+                    'category': category,
+                    'is_active': is_active
+                }
+                result = self.supabase.table('scripts').update(data).eq('id', script_id).execute()
+                return len(result.data) > 0
+            except Exception as e:
+                logger.error(f"❌ Errore update_script Supabase: {e}")
+                return False
+        else:
+            query = """
+                UPDATE scripts 
+                SET title = ?, content = ?, script_type = ?, category = ?, is_active = ?, updated_at = datetime('now')
+                WHERE id = ?
+            """
+            return self.execute_update(query, (title, content, script_type, category, is_active, script_id)) > 0
+    
+    def delete_script(self, script_id: int) -> bool:
+        """Elimina un script"""
+        if self.use_supabase:
+            try:
+                result = self.supabase.table('scripts').delete().eq('id', script_id).execute()
+                return len(result.data) > 0
+            except Exception as e:
+                logger.error(f"❌ Errore delete_script Supabase: {e}")
+                return False
+        else:
+            query = "DELETE FROM scripts WHERE id = ?"
+            return self.execute_update(query, (script_id,)) > 0
+    
+    def toggle_script_status(self, script_id: int) -> bool:
+        """Attiva/disattiva un script"""
+        if self.use_supabase:
+            try:
+                # Prima ottieni lo stato attuale
+                current = self.get_script(script_id)
+                if current is None:
+                    return False
+                
+                new_status = not current.get('is_active', True)
+                result = self.supabase.table('scripts').update({'is_active': new_status}).eq('id', script_id).execute()
+                return len(result.data) > 0
+            except Exception as e:
+                logger.error(f"❌ Errore toggle_script_status Supabase: {e}")
+                return False
+        else:
+            query = """
+                UPDATE scripts 
+                SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END,
+                    updated_at = datetime('now')
+                WHERE id = ?
+            """
+            return self.execute_update(query, (script_id,)) > 0
+    
+    def get_scripts_by_type(self, script_type: str, active_only: bool = True) -> List[Dict]:
+        """Ottiene script filtrati per tipo"""
+        return self.get_scripts(active_only=active_only, script_type=script_type)
+    
+    def get_scripts_by_category(self, category: str, active_only: bool = True) -> List[Dict]:
+        """Ottiene script filtrati per categoria"""
+        return self.get_scripts(active_only=active_only, category=category)
+    
+    def get_scripts_stats(self) -> Dict:
+        """Ottiene le statistiche degli script"""
+        if self.use_supabase:
+            try:
+                all_scripts = self.supabase.table('scripts').select('*').execute()
+                scripts = all_scripts.data
+                
+                total_scripts = len(scripts)
+                active_scripts = len([s for s in scripts if s.get('is_active', False)])
+                inactive_scripts = total_scripts - active_scripts
+                
+                # Statistiche per tipo
+                type_stats = {}
+                for script in scripts:
+                    script_type = script.get('script_type', 'Unknown')
+                    type_stats[script_type] = type_stats.get(script_type, 0) + 1
+                
+                # Statistiche per categoria
+                category_stats = {}
+                for script in scripts:
+                    category = script.get('category', 'Unknown')
+                    category_stats[category] = category_stats.get(category, 0) + 1
+                
+                return {
+                    'total_scripts': total_scripts,
+                    'active_scripts': active_scripts,
+                    'inactive_scripts': inactive_scripts,
+                    'type_stats': type_stats,
+                    'category_stats': category_stats
+                }
+            except Exception as e:
+                logger.error(f"❌ Errore get_scripts_stats Supabase: {e}")
+                return {
+                    'total_scripts': 0,
+                    'active_scripts': 0,
+                    'inactive_scripts': 0,
+                    'type_stats': {},
+                    'category_stats': {}
+                }
+        else:
+            query = """
+                SELECT 
+                    COUNT(*) as total_scripts,
+                    SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_scripts,
+                    SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) as inactive_scripts
+                FROM scripts
+            """
+            results = self.execute_query(query)
+            if results:
+                return {
+                    'total_scripts': results[0]['total_scripts'],
+                    'active_scripts': results[0]['active_scripts'],
+                    'inactive_scripts': results[0]['inactive_scripts'],
+                    'type_stats': {},
+                    'category_stats': {}
+                }
+            return {
+                'total_scripts': 0,
+                'active_scripts': 0,
+                'inactive_scripts': 0,
+                'type_stats': {},
+                'category_stats': {}
+            }
+
 # Test della classe
 if __name__ == "__main__":
     db = DatabaseManager()

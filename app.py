@@ -31,6 +31,7 @@ from components.contacts.contact_template import render_template_form_wrapper
 from components.contacts.contact_sequence import render_sequence_form_wrapper, render_sequence_list_wrapper, render_sequence_stats_wrapper
 from components.settings.settings_manager import render_settings_wrapper
 from components.broker_links.broker_links_manager import BrokerLinksManager
+from components.scripts.scripts_manager import ScriptsManager
 
 # Configurazione pagina
 st.set_page_config(
@@ -496,6 +497,13 @@ def render_broker_links_page():
     broker_manager = BrokerLinksManager(db)
     broker_manager.render_broker_links_page()
 
+def render_scripts_page():
+    """Renderizza la pagina degli script"""
+    # Inizializza il database manager
+    db = DatabaseManager()
+    scripts_manager = ScriptsManager(db)
+    scripts_manager.render_scripts_page()
+
 def main():
     """Funzione principale dell'applicazione"""
     
@@ -524,6 +532,7 @@ def main():
                 "👤 Gestione Utenti",
                 "📞 Gestione Contatti",
                 "🔗 Link Broker",
+                "📝 Script",
                 "📊 Report e Analytics",
                 "⚙️ Impostazioni"
             ]
@@ -547,6 +556,8 @@ def main():
         render_contacts_page()
     elif page == "🔗 Link Broker":
         render_broker_links_page()
+    elif page == "📝 Script":
+        render_scripts_page()
     elif page == "📊 Report e Analytics":
         render_reports_page()
     elif page == "⚙️ Impostazioni":
