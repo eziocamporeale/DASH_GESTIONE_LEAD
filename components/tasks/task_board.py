@@ -36,6 +36,31 @@ class TaskBoard:
         
         if not tasks:
             st.info("📭 Nessun task trovato")
+            
+            # Mostra azioni rapide quando non ci sono task
+            st.markdown("### ⚡ Azioni Rapide")
+            
+            col1, col2, col3, col4, col5 = st.columns(5)
+            
+            with col1:
+                if st.button("📝 Nuovo Task", use_container_width=True):
+                    st.session_state['show_task_form'] = True
+                    st.session_state['task_form_mode'] = 'create'
+                    st.rerun()
+            
+            with col2:
+                st.button("📊 Export Excel", use_container_width=True, disabled=True, help="Nessun dato da esportare")
+            
+            with col3:
+                st.button("📈 Analytics", use_container_width=True, disabled=True, help="Nessun dato per analytics")
+            
+            with col4:
+                st.button("🗑️ Elimina Multipli", use_container_width=True, disabled=True, help="Nessun task da eliminare")
+            
+            with col5:
+                if st.button("🔄 Aggiorna", use_container_width=True):
+                    st.rerun()
+            
             return
         
         # Ottieni gli stati dei task
@@ -54,6 +79,36 @@ class TaskBoard:
         # Header della board
         st.markdown("## 📋 Board Kanban Task")
         st.markdown("Gestisci i task con la metodologia Kanban")
+        
+        # Azioni rapide
+        st.markdown("### ⚡ Azioni Rapide")
+        
+        col1, col2, col3, col4, col5 = st.columns(5)
+        
+        with col1:
+            if st.button("📝 Nuovo Task", use_container_width=True):
+                st.session_state['show_task_form'] = True
+                st.session_state['task_form_mode'] = 'create'
+                st.rerun()
+        
+        with col2:
+            if st.button("📊 Export Excel", use_container_width=True):
+                # TODO: Implementare export Excel
+                st.info("📊 Funzionalità export in sviluppo")
+        
+        with col3:
+            if st.button("📈 Analytics", use_container_width=True):
+                # TODO: Implementare analytics
+                st.info("📈 Funzionalità analytics in sviluppo")
+        
+        with col4:
+            if st.button("🗑️ Elimina Multipli", use_container_width=True):
+                # TODO: Implementare eliminazione multipla
+                st.info("🗑️ Funzionalità eliminazione multipla in sviluppo")
+        
+        with col5:
+            if st.button("🔄 Aggiorna", use_container_width=True):
+                st.rerun()
         
         # Statistiche rapide
         total_tasks = len(tasks)
@@ -239,6 +294,31 @@ class TaskBoard:
         
         if not tasks:
             st.info("📭 Nessun task trovato")
+            
+            # Mostra azioni rapide quando non ci sono task
+            st.markdown("### ⚡ Azioni Rapide")
+            
+            col1, col2, col3, col4, col5 = st.columns(5)
+            
+            with col1:
+                if st.button("📝 Nuovo Task", use_container_width=True):
+                    st.session_state['show_task_form'] = True
+                    st.session_state['task_form_mode'] = 'create'
+                    st.rerun()
+            
+            with col2:
+                st.button("📊 Export Excel", use_container_width=True, disabled=True, help="Nessun dato da esportare")
+            
+            with col3:
+                st.button("📈 Analytics", use_container_width=True, disabled=True, help="Nessun dato per analytics")
+            
+            with col4:
+                st.button("🗑️ Elimina Multipli", use_container_width=True, disabled=True, help="Nessun task da eliminare")
+            
+            with col5:
+                if st.button("🔄 Aggiorna", use_container_width=True):
+                    st.rerun()
+            
             return
         
         # Converti in DataFrame
@@ -266,6 +346,36 @@ class TaskBoard:
                 if row.get('lead_first_name') and row.get('lead_last_name') else "-", 
                 axis=1
             )
+        
+        # Azioni rapide
+        st.markdown("### ⚡ Azioni Rapide")
+        
+        col1, col2, col3, col4, col5 = st.columns(5)
+        
+        with col1:
+            if st.button("📝 Nuovo Task", use_container_width=True, key="new_task_list"):
+                st.session_state['show_task_form'] = True
+                st.session_state['task_form_mode'] = 'create'
+                st.rerun()
+        
+        with col2:
+            if st.button("📊 Export Excel", use_container_width=True, key="export_list"):
+                # TODO: Implementare export Excel
+                st.info("📊 Funzionalità export in sviluppo")
+        
+        with col3:
+            if st.button("📈 Analytics", use_container_width=True, key="analytics_list"):
+                # TODO: Implementare analytics
+                st.info("📈 Funzionalità analytics in sviluppo")
+        
+        with col4:
+            if st.button("🗑️ Elimina Multipli", use_container_width=True, key="delete_multiple_list"):
+                # TODO: Implementare eliminazione multipla
+                st.info("🗑️ Funzionalità eliminazione multipla in sviluppo")
+        
+        with col5:
+            if st.button("🔄 Aggiorna", use_container_width=True, key="refresh_list"):
+                st.rerun()
         
         # Mostra la tabella
         st.markdown("### 📊 Lista Task")
@@ -371,17 +481,52 @@ def render_task_board_wrapper():
     """Wrapper per renderizzare la board task"""
     board = TaskBoard()
     
-    # Filtri
-    filters = board.render_task_filters()
+    # Controlla se mostrare il form o la board
+    if st.session_state.get('show_task_form', False):
+        # Mostra il form
+        task_data = st.session_state.get('edit_task_data', None)
+        mode = st.session_state.get('task_form_mode', 'create')
+        lead_id = st.session_state.get('create_task_for_lead', None)
+        
+        # Pulsante per tornare alla board
+        if st.button("← Torna alla Board Task"):
+            st.session_state['show_task_form'] = False
+            if 'edit_task_data' in st.session_state:
+                del st.session_state['edit_task_data']
+            if 'task_form_mode' in st.session_state:
+                del st.session_state['task_form_mode']
+            if 'create_task_for_lead' in st.session_state:
+                del st.session_state['create_task_for_lead']
+            st.rerun()
+        
+        # Importa e renderizza il form
+        from components.tasks.task_form import render_task_form_wrapper
+        task_id = render_task_form_wrapper(task_data, mode, lead_id)
+        
+        if task_id:
+            # Reset dello stato e torna alla board
+            st.session_state['show_task_form'] = False
+            if 'edit_task_data' in st.session_state:
+                del st.session_state['edit_task_data']
+            if 'task_form_mode' in st.session_state:
+                del st.session_state['task_form_mode']
+            if 'create_task_for_lead' in st.session_state:
+                del st.session_state['create_task_for_lead']
+            st.rerun()
     
-    # Tab per board e lista
-    tab1, tab2 = st.tabs(["🎯 Board Kanban", "📊 Lista Task"])
-    
-    with tab1:
-        board.render_task_board(filters)
-    
-    with tab2:
-        board.render_task_list(filters)
+    else:
+        # Mostra la board
+        # Filtri
+        filters = board.render_task_filters()
+        
+        # Tab per board e lista
+        tab1, tab2 = st.tabs(["🎯 Board Kanban", "📊 Lista Task"])
+        
+        with tab1:
+            board.render_task_board(filters)
+        
+        with tab2:
+            board.render_task_list(filters)
 
 # Test della classe
 if __name__ == "__main__":
