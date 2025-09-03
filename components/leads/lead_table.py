@@ -245,14 +245,22 @@ class LeadTable:
             st.error("❌ Lead non trovato")
             return
         
-        st.markdown(f"## 👤 Dettagli Lead: {lead['first_name']} {lead['last_name']}")
+        # Gestisce sia formato Supabase (name) che SQLite (first_name + last_name)
+        if 'name' in lead and lead['name']:
+            lead_name = lead['name']
+        elif 'first_name' in lead and 'last_name' in lead:
+            lead_name = f"{lead['first_name']} {lead['last_name']}"
+        else:
+            lead_name = f"Lead ID {lead_id}"
+        
+        st.markdown(f"## 👤 Dettagli Lead: {lead_name}")
         
         # Informazioni principali
         col1, col2 = st.columns(2)
         
         with col1:
             st.markdown("### 📋 Informazioni Base")
-            st.markdown(f"**Nome:** {lead['first_name']} {lead['last_name']}")
+            st.markdown(f"**Nome:** {lead_name}")
             st.markdown(f"**Email:** {lead['email'] or 'Non specificato'}")
             st.markdown(f"**Telefono:** {lead['phone'] or 'Non specificato'}")
             st.markdown(f"**Azienda:** {lead['company'] or 'Non specificato'}")
@@ -264,7 +272,12 @@ class LeadTable:
             st.markdown(f"**Categoria:** {lead['category_name']}")
             st.markdown(f"**Priorità:** {lead['priority_name']}")
             st.markdown(f"**Fonte:** {lead['source_name']}")
-            st.markdown(f"**Assegnato a:** {lead['assigned_first_name']} {lead['assigned_last_name']}" if lead['assigned_first_name'] else "**Assegnato a:** Non assegnato")
+            # Gestisce il nome dell'utente assegnato
+            if 'assigned_first_name' in lead and 'assigned_last_name' in lead and lead['assigned_first_name']:
+                assigned_name = f"{lead['assigned_first_name']} {lead['assigned_last_name']}"
+            else:
+                assigned_name = "Non assegnato"
+            st.markdown(f"**Assegnato a:** {assigned_name}")
         
         # Informazioni aggiuntive
         col1, col2 = st.columns(2)
@@ -279,7 +292,12 @@ class LeadTable:
             st.markdown("### 📅 Date")
             st.markdown(f"**Creato il:** {lead['created_at']}")
             st.markdown(f"**Aggiornato il:** {lead['updated_at']}")
-            st.markdown(f"**Creato da:** {lead['created_first_name']} {lead['created_last_name']}")
+            # Gestisce il nome dell'utente creatore
+            if 'created_first_name' in lead and 'created_last_name' in lead and lead['created_first_name']:
+                created_name = f"{lead['created_first_name']} {lead['created_last_name']}"
+            else:
+                created_name = "Sistema"
+            st.markdown(f"**Creato da:** {created_name}")
         
         # Note
         if lead['notes']:
@@ -304,7 +322,15 @@ class LeadTable:
         
         with col3:
             if st.button("🗑️ Elimina", key=f"delete_{lead_id}"):
-                if st.confirm(f"Sei sicuro di voler eliminare il lead {lead['first_name']} {lead['last_name']}?"):
+                # Gestisce sia formato Supabase (name) che SQLite (first_name + last_name)
+                if 'name' in lead and lead['name']:
+                    lead_name = lead['name']
+                elif 'first_name' in lead and 'last_name' in lead:
+                    lead_name = f"{lead['first_name']} {lead['last_name']}"
+                else:
+                    lead_name = f"Lead ID {lead_id}"
+                
+                if st.confirm(f"Sei sicuro di voler eliminare il lead {lead_name}?"):
                     if self.db.delete_lead(lead_id):
                         st.success("✅ Lead eliminato con successo!")
                         st.rerun()
