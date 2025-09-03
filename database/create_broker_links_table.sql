@@ -41,7 +41,7 @@ CREATE POLICY "Admin and Manager full access" ON broker_links
         EXISTS (
             SELECT 1 FROM users u
             JOIN roles r ON u.role_id = r.id
-            WHERE u.id = auth.uid()
+            WHERE u.id::text = auth.uid()::text
             AND r.name IN ('Admin', 'Manager')
         )
     );

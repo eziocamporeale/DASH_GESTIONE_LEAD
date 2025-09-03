@@ -1,4 +1,4 @@
--- Creazione tabella broker_links per gestione link di affiliate
+-- Creazione tabella broker_links per gestione link di affiliate (Versione Semplificata)
 -- Esegui questo SQL nel SQL Editor di Supabase
 -- Creato da Ezio Camporeale
 
@@ -33,29 +33,18 @@ CREATE TRIGGER trigger_broker_links_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_broker_links_updated_at();
 
--- Politiche RLS (Row Level Security)
+-- Politiche RLS (Row Level Security) - Versione Semplificata
 ALTER TABLE broker_links ENABLE ROW LEVEL SECURITY;
 
--- Politica per accesso completo (admin e manager)
-CREATE POLICY "Admin and Manager full access" ON broker_links
+-- Politica per accesso completo (tutti gli utenti autenticati)
+CREATE POLICY "Authenticated users full access" ON broker_links
     FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM users u
-            JOIN roles r ON u.role_id = r.id
-            WHERE u.id::text = auth.uid()::text
-            AND r.name IN ('Admin', 'Manager')
-        )
-    );
-
--- Politica per lettura (tutti gli utenti autenticati)
-CREATE POLICY "Authenticated users read access" ON broker_links
-    FOR SELECT USING (
         auth.uid() IS NOT NULL
     );
 
--- Inserimento dati di esempio (commentato - da inserire manualmente con UUID validi)
--- INSERT INTO broker_links (broker_name, affiliate_link, created_by) VALUES
--- ('eToro', 'https://www.etoro.com/affiliate/example', 'UUID-DELL-UTENTE-ADMIN'),
--- ('Plus500', 'https://www.plus500.com/affiliate/example', 'UUID-DELL-UTENTE-ADMIN'),
--- ('IG Markets', 'https://www.ig.com/affiliate/example', 'UUID-DELL-UTENTE-ADMIN')
--- ON CONFLICT DO NOTHING;
+-- Commenti per documentazione
+COMMENT ON TABLE broker_links IS 'Tabella per gestione link di affiliate dei broker';
+COMMENT ON COLUMN broker_links.broker_name IS 'Nome del broker';
+COMMENT ON COLUMN broker_links.affiliate_link IS 'Link di affiliate per il broker';
+COMMENT ON COLUMN broker_links.is_active IS 'Stato attivo/inattivo del link';
+COMMENT ON COLUMN broker_links.created_by IS 'ID dell''utente che ha creato il link';
