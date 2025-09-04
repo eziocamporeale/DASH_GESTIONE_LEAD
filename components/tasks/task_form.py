@@ -162,10 +162,15 @@ class TaskForm:
                     else:
                         current_lead_name = ""
                     
+                    # Trova l'indice corretto per il lead corrente
+                    lead_index = 0
+                    if current_lead_name and current_lead_name in leads_options.keys():
+                        lead_index = list(leads_options.keys()).index(current_lead_name) + 1
+                    
                     selected_lead = st.selectbox(
                         "Lead associato",
                         options=[""] + list(leads_options.keys()),
-                        index=0 if not current_lead_name else list(leads_options.keys()).index(current_lead_name) + 1,
+                        index=lead_index,
                         help="Lead associato al task (opzionale)"
                     )
             
@@ -177,7 +182,16 @@ class TaskForm:
                 # Data scadenza
                 current_due_date = task_data.get('due_date') if task_data else None
                 if current_due_date:
-                    current_due_date = datetime.strptime(current_due_date, '%Y-%m-%d').date()
+                    try:
+                        # Gestisce formato ISO8601 di Supabase (2025-09-04T00:00:00+00:00)
+                        if 'T' in str(current_due_date):
+                            current_due_date = datetime.fromisoformat(str(current_due_date).replace('Z', '+00:00')).date()
+                        else:
+                            # Formato SQLite (2025-09-04)
+                            current_due_date = datetime.strptime(str(current_due_date), '%Y-%m-%d').date()
+                    except Exception as e:
+                        st.warning(f"⚠️ Errore parsing data: {e}")
+                        current_due_date = None
                 
                 due_date = st.date_input(
                     "Data scadenza",
@@ -190,7 +204,16 @@ class TaskForm:
                 if task_data and task_data.get('state_name') == 'Completato':
                     completed_at = task_data.get('completed_at')
                     if completed_at:
-                        completed_at = datetime.strptime(completed_at, '%Y-%m-%d %H:%M:%S').date()
+                        try:
+                            # Gestisce formato ISO8601 di Supabase
+                            if 'T' in str(completed_at):
+                                completed_at = datetime.fromisoformat(str(completed_at).replace('Z', '+00:00')).date()
+                            else:
+                                # Formato SQLite
+                                completed_at = datetime.strptime(str(completed_at), '%Y-%m-%d %H:%M:%S').date()
+                        except Exception as e:
+                            st.warning(f"⚠️ Errore parsing data completamento: {e}")
+                            completed_at = date.today()
                     else:
                         completed_at = date.today()
                     
@@ -207,13 +230,13 @@ class TaskForm:
             with col1:
                 submit_button = st.form_submit_button(
                     "💾 Salva Task" if mode == "create" else "💾 Aggiorna Task",
-                    use_container_width=True
+                    type="primary"
                 )
             
             with col2:
                 cancel_button = st.form_submit_button(
                     "❌ Annulla",
-                    use_container_width=True
+                    type="secondary"
                 )
             
             # Gestione submit
