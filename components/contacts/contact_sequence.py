@@ -158,30 +158,9 @@ class ContactSequence:
                 )
             
             with col3:
-                # Aggiungi passo
-                if st.button("➕ Aggiungi Passo", use_container_width=True):
-                    if selected_template:
-                        # Estrai template ID dal nome
-                        template_name = selected_template.split(" (")[0]
-                        template = next((t for t in templates if t['name'] == template_name), None)
-                        
-                        if template:
-                            step_data = {
-                                'sequence_id': sequence_data['id'] if sequence_data else None,
-                                'template_id': template['id'],
-                                'delay_hours': delay_hours,
-                                'order_index': 1  # Verrà aggiornato
-                            }
-                            
-                            if self.db.add_sequence_step(step_data):
-                                st.success(f"✅ Passo aggiunto: {template_name}")
-                                st.rerun()
-                            else:
-                                st.error("❌ Errore nell'aggiunta del passo")
-                        else:
-                            st.error("❌ Template non trovato")
-                    else:
-                        st.error("❌ Seleziona un template")
+                # Aggiungi passo (spostato fuori dal form)
+                st.markdown("**Aggiungi Passo:**")
+                st.markdown("Usa il pulsante 'Salva' per aggiungere passi alla sequenza")
             
             # Note
             notes = st.text_area(

@@ -164,27 +164,23 @@ def render_logout_section():
     if not current_user:
         return
     
-    # Sidebar per informazioni utente e logout
+    # Sidebar compatta per informazioni utente e logout
     with st.sidebar:
-        st.markdown("### 👤 Profilo Utente")
+        st.markdown("### 👤 User")
         
-        # Informazioni utente
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            st.markdown("👤")
-        with col2:
-            st.markdown(f"**{current_user['first_name']} {current_user['last_name']}**")
-            st.markdown(f"📧 {current_user['email']}")
-            st.markdown(f"🎭 {current_user['role_name']}")
-            if current_user.get('department_name'):
-                st.markdown(f"🏢 {current_user['department_name']}")
+        # Informazioni utente compatte
+        st.markdown(f"**{current_user['first_name']} {current_user['last_name']}**")
+        st.markdown(f"📧 {current_user['email']}")
+        st.markdown(f"🎭 {current_user['role_name']}")
+        if current_user.get('department_name'):
+            st.markdown(f"🏢 {current_user['department_name']}")
         
         st.markdown("---")
         
-        # Pulsante logout
+        # Pulsante logout compatto
         if st.button("🚪 Logout", use_container_width=True):
             auth_manager.logout()
-            st.success("✅ Logout effettuato con successo!")
+            st.success("✅ Logout effettuato!")
             st.rerun()
 
 def render_auth_status():

@@ -41,6 +41,21 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# CSS per sidebar compatta
+st.markdown("""
+<style>
+    [data-testid="stSidebar"] {
+        width: 250px !important;
+    }
+    [data-testid="stSidebar"] .stSelectbox {
+        font-size: 0.9rem;
+    }
+    [data-testid="stSidebar"] .stMarkdown {
+        font-size: 0.9rem;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # CSS personalizzato
 st.markdown("""
 <style>
@@ -518,49 +533,49 @@ def main():
     # Utente autenticato - mostra l'applicazione
     render_header()
     
-    # Sidebar con navigazione
+    # Sidebar compatta con navigazione
     with st.sidebar:
-        st.markdown("### 🧭 Navigazione")
+        st.markdown("### 🧭 Menu")
         
-        # Menu di navigazione
+        # Menu di navigazione compatto
         page = st.selectbox(
-            "Seleziona sezione:",
+            "Sezione:",
             [
                 "📊 Dashboard",
-                "👥 Gestione Lead", 
-                "✅ Gestione Task",
-                "👤 Gestione Utenti",
-                "📞 Gestione Contatti",
-                "🔗 Link Broker",
+                "👥 Lead", 
+                "✅ Task",
+                "👤 Utenti",
+                "📞 Contatti",
+                "🔗 Broker",
                 "📝 Script",
-                "📊 Report e Analytics",
-                "⚙️ Impostazioni"
+                "📊 Report",
+                "⚙️ Settings"
             ]
         )
         
         st.markdown("---")
         
-        # Informazioni utente e logout
+        # Informazioni utente e logout compatti
         render_logout_section()
     
     # Contenuto principale basato sulla pagina selezionata
     if page == "📊 Dashboard":
         render_dashboard()
-    elif page == "👥 Gestione Lead":
+    elif page == "👥 Lead":
         render_leads_page()
-    elif page == "✅ Gestione Task":
+    elif page == "✅ Task":
         render_tasks_page()
-    elif page == "👤 Gestione Utenti":
+    elif page == "👤 Utenti":
         render_users_page()
-    elif page == "📞 Gestione Contatti":
+    elif page == "📞 Contatti":
         render_contacts_page()
-    elif page == "🔗 Link Broker":
+    elif page == "🔗 Broker":
         render_broker_links_page()
     elif page == "📝 Script":
         render_scripts_page()
-    elif page == "📊 Report e Analytics":
+    elif page == "📊 Report":
         render_reports_page()
-    elif page == "⚙️ Impostazioni":
+    elif page == "⚙️ Settings":
         render_settings_page()
 
 if __name__ == "__main__":

@@ -76,13 +76,10 @@ class TaskBoard:
             if state_name in tasks_by_state:
                 tasks_by_state[state_name].append(task)
         
-        # Header della board
-        st.markdown("## 📋 Board Kanban Task")
-        st.markdown("Gestisci i task con la metodologia Kanban")
+        # Header della board compatta
+        st.markdown("## 📋 Board Kanban")
         
-        # Azioni rapide
-        st.markdown("### ⚡ Azioni Rapide")
-        
+        # Azioni rapide compatte
         col1, col2, col3, col4, col5 = st.columns(5)
         
         with col1:
@@ -140,32 +137,76 @@ class TaskBoard:
             in_progress_tasks = len([t for t in tasks if t['state_name'] == 'In Corso'])
             st.metric("🔄 In Corso", in_progress_tasks)
         
-        # Board Kanban
-        st.markdown("### 🎯 Board Kanban")
+        # Board Kanban con colonne collassabili
+        st.markdown("### 🎯 Board")
+        
+        # Inizializza lo stato delle colonne se non esiste
+        if 'collapsed_columns' not in st.session_state:
+            st.session_state['collapsed_columns'] = {}
+        
+        # Pulsanti per controllare tutte le colonne
+        col1, col2, col3 = st.columns([1, 1, 2])
+        with col1:
+            if st.button("📂 Comprimi Tutto", key="collapse_all"):
+                for state in task_states:
+                    st.session_state['collapsed_columns'][state['name']] = True
+                st.rerun()
+        
+        with col2:
+            if st.button("📁 Espandi Tutto", key="expand_all"):
+                for state in task_states:
+                    st.session_state['collapsed_columns'][state['name']] = False
+                st.rerun()
         
         # Crea le colonne per ogni stato
-        columns = st.columns(len(task_states))
+        columns = st.columns(len(task_states), gap="small")
         
         for i, state in enumerate(task_states):
             with columns[i]:
-                # Header della colonna
+                # Header della colonna collassabile
                 state_color = state['color']
-                st.markdown(f"""
-                <div style="background: {state_color}; color: white; padding: 10px; border-radius: 5px; text-align: center; margin-bottom: 10px;">
-                    <strong>{state['name']}</strong> ({len(tasks_by_state[state['name']])})
-                </div>
-                """, unsafe_allow_html=True)
+                state_name = state['name']
+                task_count = len(tasks_by_state[state_name])
                 
-                # Pulsante per aggiungere task in questo stato
-                if st.button(f"➕ Nuovo Task", key=f"add_task_{state['id']}", width='stretch'):
-                    st.session_state['show_task_form'] = True
-                    st.session_state['task_form_mode'] = 'create'
-                    st.session_state['default_task_state'] = state['id']
-                    st.rerun()
+                # Controlla se la colonna è collassata
+                is_collapsed = st.session_state['collapsed_columns'].get(state_name, True)
                 
-                # Task in questo stato
-                for task in tasks_by_state[state['name']]:
-                    self.render_task_card(task, state)
+                # Header con pulsante toggle
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.markdown(f"""
+                    <div style="background: {state_color}; color: white; padding: 8px; border-radius: 4px; text-align: center; margin-bottom: 8px; font-size: 0.9rem; cursor: pointer;">
+                        <strong>{state_name}</strong> ({task_count})
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with col2:
+                    # Pulsante per espandere/comprimere
+                    toggle_icon = "📂" if is_collapsed else "📁"
+                    if st.button(toggle_icon, key=f"toggle_{state['id']}", help=f"{'Espandi' if is_collapsed else 'Comprimi'} {state_name}"):
+                        st.session_state['collapsed_columns'][state_name] = not is_collapsed
+                        st.rerun()
+                
+                # Contenuto della colonna (visibile solo se espansa)
+                if not is_collapsed:
+                    # Pulsante per aggiungere task in questo stato
+                    if st.button(f"➕", key=f"add_task_{state['id']}", help=f"Aggiungi task in {state_name}"):
+                        st.session_state['show_task_form'] = True
+                        st.session_state['task_form_mode'] = 'create'
+                        st.session_state['default_task_state'] = state['id']
+                        st.rerun()
+                    
+                    # Task in questo stato
+                    for task in tasks_by_state[state_name]:
+                        self.render_task_card(task, state)
+                else:
+                    # Mostra solo un riassunto compatto
+                    if task_count > 0:
+                        st.markdown(f"""
+                        <div style="background: #f8f9fa; padding: 8px; border-radius: 4px; text-align: center; font-size: 0.8rem; color: #666;">
+                            {task_count} task
+                        </div>
+                        """, unsafe_allow_html=True)
     
     def render_task_card(self, task: Dict, state: Dict):
         """Renderizza una card di task"""
@@ -192,66 +233,35 @@ class TaskBoard:
             except:
                 is_overdue = False
         
-        # Card del task usando componenti nativi di Streamlit
+        # Preparo tutti i contenuti prima di renderizzare
+        lead_info = ""
+        if task.get('lead_first_name') and task.get('lead_last_name'):
+            lead_name = f"{task['lead_first_name']} {task['lead_last_name']}"
+            lead_info = f'<div style="margin: 6px 0; font-size: 14px;">👥 <strong>{lead_name[:15]}{"..." if len(lead_name) > 15 else ""}</strong></div>'
+        
+        due_date_info = '<div style="margin: 6px 0; font-size: 14px;">📅 <strong>N/A</strong></div>'
+        if task.get('due_date'):
+            try:
+                if 'T' in str(task['due_date']):
+                    due_date = datetime.fromisoformat(str(task['due_date']).replace('Z', '+00:00')).date()
+                else:
+                    due_date = datetime.strptime(str(task['due_date']), '%Y-%m-%d').date()
+                due_date_info = f'<div style="margin: 6px 0; font-size: 14px;">📅 <strong>{due_date.strftime("%d/%m")}</strong></div>'
+            except:
+                pass
+        
+        overdue_warning = ""
+        if is_overdue:
+            overdue_warning = '<div style="margin: 6px 0; font-size: 14px; color: #DC3545;">⚠️ <strong>SCADUTO</strong></div>'
+        
+        # Card del task con CSS INLINE SEMPLICE
         with st.container():
-            # Container principale con bordo colorato e ombra
+            # Colori e stili
             border_color = "#DC3545" if is_overdue else priority_color
-            st.markdown(f"""
-            <div style="
-                border: 2px solid {border_color}; 
-                border-radius: 8px; 
-                padding: 12px; 
-                margin: 8px 0; 
-                background: {'#fff5f5' if is_overdue else 'white'};
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                transition: all 0.3s ease;
-            ">
-            """, unsafe_allow_html=True)
+            background_color = '#fff5f5' if is_overdue else '#ffffff'
             
-            # Header con titolo e priorità
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                st.markdown(f"**{task['title']}**")
-            with col2:
-                st.markdown(f"""
-                <div style="
-                    background: {priority_color}; 
-                    color: white; 
-                    padding: 2px 6px; 
-                    border-radius: 10px; 
-                    font-size: 10px;
-                    text-align: center;
-                ">{priority_name}</div>
-                """, unsafe_allow_html=True)
-            
-            # Dettagli del task
-            task_type = task.get('task_type_name', 'N/A')
-            st.markdown(f"📋 {task_type}")
-            st.markdown(f"👤 {task['assigned_first_name']} {task['assigned_last_name']}")
-            
-            if task.get('lead_first_name') and task.get('lead_last_name'):
-                st.markdown(f"👥 {task['lead_first_name']} {task['lead_last_name']}")
-            
-            st.markdown(f"📅 {task['due_date'] if task.get('due_date') else 'N/A'}")
-            
-            if is_overdue:
-                st.markdown("⚠️ **SCADUTO**")
-            
-            st.markdown("</div>", unsafe_allow_html=True)
-            
-            # Azioni rapide
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("✏️", key=f"edit_{task['id']}", help="Modifica task"):
-                    st.session_state['show_task_form'] = True
-                    st.session_state['task_form_mode'] = 'edit'
-                    st.session_state['edit_task_data'] = task
-                    st.rerun()
-            
-            with col2:
-                if st.button("▶️", key=f"next_{task['id']}", help="Avanza stato"):
-                    self.advance_task_state(task['id'], task['state_id'])
-                    st.rerun()
+            # CSS INLINE SEMPLICE - tutto su una riga
+            st.markdown(f"""<div style="border:4px solid {border_color};border-radius:16px;padding:20px;margin:16px 0;background:{background_color};box-shadow:0 6px 12px rgba(0,0,0,0.2);min-height:120px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><div style="font-size:1.1rem;font-weight:bold;color:#2c3e50;">{task['title'][:20]}{'...' if len(task['title']) > 20 else ''}</div><div style="background:{priority_color};color:white;padding:4px 8px;border-radius:12px;font-size:10px;text-align:center;font-weight:bold;">{priority_name[:3]}</div></div><hr style="margin:12px 0;border:none;border-top:1px solid #e9ecef;"><div style="margin:12px 0;padding:12px;background:rgba(255,255,255,0.9);border-radius:12px;border-left:4px solid {priority_color};"><div style="margin:6px 0;font-size:14px;">📋 <strong>{task.get('task_type_name', 'N/A')[:8]}{'...' if len(task.get('task_type_name', 'N/A')) > 8 else ''}</strong></div><div style="margin:6px 0;font-size:14px;">👤 <strong>{task['assigned_first_name'][:8]}{'...' if len(task['assigned_first_name']) > 8 else ''}</strong></div>{lead_info}{due_date_info}{overdue_warning}</div><hr style="margin:12px 0;border:none;border-top:1px solid #e9ecef;"><div style="display:flex;gap:8px;"><button style="flex:1;padding:8px;background:white;border:1px solid #dee2e6;border-radius:8px;cursor:pointer;font-size:12px;" onclick="alert('Modifica task {task['id']}')">✏️ Modifica</button><button style="flex:1;padding:8px;background:white;border:1px solid #dee2e6;border-radius:8px;cursor:pointer;font-size:12px;" onclick="alert('Avanza task {task['id']}')">▶️ Avanza</button></div></div>""", unsafe_allow_html=True)
     
     def advance_task_state(self, task_id: int, current_state_id: int):
         """Avanza lo stato di un task"""
@@ -408,7 +418,6 @@ class TaskBoard:
             # Mostra la tabella
             st.dataframe(
                 display_df,
-                width='stretch',
                 hide_index=True
             )
     
