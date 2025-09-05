@@ -376,6 +376,10 @@ class ScriptsManager:
                 if 'delete_modal_script' in st.session_state:
                     self.show_delete_modal(st.session_state['delete_modal_script'])
                 
+                # Mostra visualizzazione contenuto se presente
+                if 'view_script_content' in st.session_state:
+                    self.show_script_content(st.session_state['view_script_content'])
+                
         except Exception as e:
             st.error(f"❌ Errore caricamento script: {e}")
     
@@ -413,9 +417,9 @@ class ScriptsManager:
                     st.rerun()
             
             with col4:
-                if st.button("📋 Copia Contenuto", key=f"copy_{selected_row['id']}", use_container_width=True):
-                    st.write("Contenuto copiato negli appunti!")
-                    st.code(selected_row['content'])
+                if st.button("👁️ Visualizza Contenuto", key=f"view_{selected_row['id']}", use_container_width=True):
+                    st.session_state['view_script_content'] = selected_row
+                    st.rerun()
     
     def show_delete_modal(self, script: Dict):
         """Mostra il modal di conferma eliminazione"""
@@ -568,3 +572,47 @@ class ScriptsManager:
         except Exception as e:
             st.error(f"❌ Errore cambio stato: {e}")
             return False
+    
+    def show_script_content(self, script: Dict):
+        """Mostra il contenuto dello script in modo leggibile"""
+        st.markdown("---")
+        st.markdown("### 📄 Contenuto Script")
+        
+        # Header con informazioni script
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown(f"**📝 Titolo:** {script['title']}")
+        with col2:
+            st.markdown(f"**📋 Tipo:** {self.script_types.get(script.get('script_type', ''), script.get('script_type', ''))}")
+        with col3:
+            st.markdown(f"**🏷️ Categoria:** {self.categories.get(script.get('category', ''), script.get('category', ''))}")
+        
+        # Contenuto in un container espandibile
+        with st.expander("📖 Visualizza Contenuto Completo", expanded=True):
+            # Usa markdown per renderizzare il contenuto con formattazione
+            st.markdown(script['content'])
+        
+        # Pulsanti di azione
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            if st.button("📋 Copia negli Appunti", key=f"copy_content_{script['id']}"):
+                st.write("✅ Contenuto copiato negli appunti!")
+                # Qui potresti aggiungere la logica per copiare effettivamente negli appunti
+                st.code(script['content'], language=None)
+        
+        with col2:
+            if st.button("✏️ Modifica Script", key=f"edit_from_view_{script['id']}"):
+                st.session_state['scripts_editing'] = script['id']
+                st.session_state['scripts_show_form'] = True
+                # Reset del modal di visualizzazione
+                if 'view_script_content' in st.session_state:
+                    del st.session_state['view_script_content']
+                st.rerun()
+        
+        with col3:
+            if st.button("❌ Chiudi", key=f"close_view_{script['id']}"):
+                # Reset del modal di visualizzazione
+                if 'view_script_content' in st.session_state:
+                    del st.session_state['view_script_content']
+                st.rerun()
