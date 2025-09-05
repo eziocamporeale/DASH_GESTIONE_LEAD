@@ -541,36 +541,28 @@ def main():
     # Utente autenticato - mostra l'applicazione
     render_header()
     
-    # Sidebar compatta con navigazione
-    with st.sidebar:
-        st.markdown("### 🧭 Menu")
-        
-        # Menu di navigazione compatto (dinamico basato sui permessi)
-        current_user = auth_manager.get_current_user()
-        menu_options = [
-            "📊 Dashboard",
-            "👥 Lead", 
-            "✅ Task",
-            "📞 Contatti",
-            "🔗 Broker",
-            "📝 Script",
-            "📊 Report",
-            "⚙️ Settings"
-        ]
-        
-        # Solo Admin può vedere la gestione utenti
-        if current_user and current_user.get('role_name') == 'Admin':
-            menu_options.insert(3, "👤 Utenti")  # Inserisce dopo Task
-        
-        page = st.selectbox(
-            "Sezione:",
-            menu_options
-        )
-        
-        st.markdown("---")
-        
-        # Informazioni utente e logout compatti
-        render_logout_section()
+    # Gestione sidebar temporanea dopo login
+    show_sidebar = False
+    if st.session_state.get('show_sidebar_temporarily', False):
+        show_sidebar = True
+        # Decrementa il timer
+        timer = st.session_state.get('sidebar_timer', 0)
+        if timer > 0:
+            st.session_state['sidebar_timer'] = timer - 1
+        else:
+            # Timer scaduto, nascondi la sidebar
+            st.session_state['show_sidebar_temporarily'] = False
+            del st.session_state['sidebar_timer']
+    
+    # Importa il componente del menu centrale
+    from components.layout.central_menu import render_central_menu, render_compact_sidebar
+    
+    # Menu centrale sempre visibile
+    page = render_central_menu(st.session_state.get('current_page', '📊 Dashboard'))
+    
+    # Sidebar compatta solo con info utente (visibile temporaneamente dopo login)
+    if show_sidebar:
+        render_compact_sidebar()
     
     # Contenuto principale basato sulla pagina selezionata
     if page == "📊 Dashboard":

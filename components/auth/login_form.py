@@ -140,6 +140,11 @@ def render_login_form() -> Optional[Dict]:
                 if user_data:
                     st.success(f"✅ Benvenuto, {user_data['first_name']}!")
                     st.balloons()
+                    
+                    # Imposta il flag per mostrare la sidebar temporaneamente
+                    st.session_state['show_sidebar_temporarily'] = True
+                    st.session_state['sidebar_timer'] = 2  # 2 secondi
+                    
                     return user_data
                 else:
                     st.error("❌ Username o password non validi")
