@@ -355,6 +355,9 @@ def render_tasks_page():
 
 def render_users_page():
     """Renderizza la pagina di gestione utenti"""
+    # CONTROLLO SICUREZZA: Solo Admin può accedere alla gestione utenti
+    auth_manager.require_role(['Admin'])
+    
     st.markdown("## 👤 Gestione Utenti")
     st.markdown("Gestisci utenti, ruoli e dipartimenti")
     
@@ -537,20 +540,26 @@ def main():
     with st.sidebar:
         st.markdown("### 🧭 Menu")
         
-        # Menu di navigazione compatto
+        # Menu di navigazione compatto (dinamico basato sui permessi)
+        current_user = auth_manager.get_current_user()
+        menu_options = [
+            "📊 Dashboard",
+            "👥 Lead", 
+            "✅ Task",
+            "📞 Contatti",
+            "🔗 Broker",
+            "📝 Script",
+            "📊 Report",
+            "⚙️ Settings"
+        ]
+        
+        # Solo Admin può vedere la gestione utenti
+        if current_user and current_user.get('role_name') == 'Admin':
+            menu_options.insert(3, "👤 Utenti")  # Inserisce dopo Task
+        
         page = st.selectbox(
             "Sezione:",
-            [
-                "📊 Dashboard",
-                "👥 Lead", 
-                "✅ Task",
-                "👤 Utenti",
-                "📞 Contatti",
-                "🔗 Broker",
-                "📝 Script",
-                "📊 Report",
-                "⚙️ Settings"
-            ]
+            menu_options
         )
         
         st.markdown("---")
