@@ -214,27 +214,13 @@ class ScriptsManager:
                 help="Attiva/disattiva lo script"
             )
             
-            # Validazione
-            validation_errors = []
-            if not title.strip():
-                validation_errors.append("❌ Titolo script obbligatorio")
-            
-            if not content.strip():
-                validation_errors.append("❌ Contenuto script obbligatorio")
-            
-            # Mostra errori di validazione
-            if validation_errors:
-                for error in validation_errors:
-                    st.error(error)
-            
             # Pulsanti
             col1, col2, col3 = st.columns(3)
             
             with col1:
                 submitted = st.form_submit_button(
                     "💾 Salva Script",
-                    type="primary",
-                    disabled=len(validation_errors) > 0
+                    type="primary"
                 )
             
             with col2:
@@ -251,7 +237,20 @@ class ScriptsManager:
                     st.rerun()
             
             # Gestione submit
-            if submitted and len(validation_errors) == 0:
+            if submitted:
+                # Validazione al momento del submit
+                validation_errors = []
+                if not title.strip():
+                    validation_errors.append("❌ Titolo script obbligatorio")
+                
+                if not content.strip():
+                    validation_errors.append("❌ Contenuto script obbligatorio")
+                
+                # Mostra errori di validazione se presenti
+                if validation_errors:
+                    for error in validation_errors:
+                        st.error(error)
+                    return  # Non procedere se ci sono errori
                 if editing_script:
                     # Modifica script esistente
                     success = self.db.update_script(
@@ -271,8 +270,14 @@ class ScriptsManager:
                         st.error("❌ Errore aggiornamento script")
                 else:
                     # Crea nuovo script
-                    # Ottieni user_id dalla sessione (UUID per Supabase)
-                    user_id = st.session_state.get('user_id', None)  # UUID per Supabase
+                    # Ottieni user_id dall'auth_manager
+                    from components.auth.auth_manager import auth_manager
+                    current_user = auth_manager.get_current_user()
+                    if not current_user:
+                        st.error("❌ Errore: Utente non autenticato")
+                        return
+                    
+                    user_id = current_user.get('user_id')  # UUID per Supabase
                     if not user_id:
                         st.error("❌ Errore: ID utente non disponibile")
                         return
