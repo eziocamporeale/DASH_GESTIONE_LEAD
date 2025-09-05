@@ -239,6 +239,15 @@ class TaskBoard:
             lead_name = f"{task['lead_first_name']} {task['lead_last_name']}"
             lead_info = f'<div style="margin: 6px 0; font-size: 14px;">👥 <strong>{lead_name[:15]}{"..." if len(lead_name) > 15 else ""}</strong></div>'
         
+        # Descrizione del task
+        description_info = ""
+        if task.get('description') and task['description'].strip():
+            description_text = task['description'].strip()
+            # Tronca la descrizione se troppo lunga
+            if len(description_text) > 50:
+                description_text = description_text[:50] + "..."
+            description_info = f'<div style="margin: 6px 0; font-size: 13px; color: #666; font-style: italic;">📝 {description_text}</div>'
+        
         due_date_info = '<div style="margin: 6px 0; font-size: 14px;">📅 <strong>N/A</strong></div>'
         if task.get('due_date'):
             try:
@@ -261,7 +270,7 @@ class TaskBoard:
             background_color = '#fff5f5' if is_overdue else '#ffffff'
             
             # CSS INLINE SEMPLICE - tutto su una riga (senza pulsanti HTML)
-            st.markdown(f"""<div style="border:4px solid {border_color};border-radius:16px;padding:20px;margin:16px 0;background:{background_color};box-shadow:0 6px 12px rgba(0,0,0,0.2);min-height:120px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><div style="font-size:1.1rem;font-weight:bold;color:#2c3e50;">{task['title'][:20]}{'...' if len(task['title']) > 20 else ''}</div><div style="background:{priority_color};color:white;padding:4px 8px;border-radius:12px;font-size:10px;text-align:center;font-weight:bold;">{priority_name[:3]}</div></div><hr style="margin:12px 0;border:none;border-top:1px solid #e9ecef;"><div style="margin:12px 0;padding:12px;background:rgba(255,255,255,0.9);border-radius:12px;border-left:4px solid {priority_color};"><div style="margin:6px 0;font-size:14px;">📋 <strong>{task.get('task_type_name', 'N/A')[:8]}{'...' if len(task.get('task_type_name', 'N/A')) > 8 else ''}</strong></div><div style="margin:6px 0;font-size:14px;">👤 <strong>{task['assigned_first_name'][:8]}{'...' if len(task['assigned_first_name']) > 8 else ''}</strong></div>{lead_info}{due_date_info}{overdue_warning}</div></div>""", unsafe_allow_html=True)
+            st.markdown(f"""<div style="border:4px solid {border_color};border-radius:16px;padding:20px;margin:16px 0;background:{background_color};box-shadow:0 6px 12px rgba(0,0,0,0.2);min-height:120px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><div style="font-size:1.1rem;font-weight:bold;color:#2c3e50;">{task['title'][:20]}{'...' if len(task['title']) > 20 else ''}</div><div style="background:{priority_color};color:white;padding:4px 8px;border-radius:12px;font-size:10px;text-align:center;font-weight:bold;">{priority_name[:3]}</div></div><hr style="margin:12px 0;border:none;border-top:1px solid #e9ecef;"><div style="margin:12px 0;padding:12px;background:rgba(255,255,255,0.9);border-radius:12px;border-left:4px solid {priority_color};"><div style="margin:6px 0;font-size:14px;">📋 <strong>{task.get('task_type_name', 'N/A')[:8]}{'...' if len(task.get('task_type_name', 'N/A')) > 8 else ''}</strong></div><div style="margin:6px 0;font-size:14px;">👤 <strong>{task['assigned_first_name'][:8]}{'...' if len(task['assigned_first_name']) > 8 else ''}</strong></div>{description_info}{lead_info}{due_date_info}{overdue_warning}</div></div>""", unsafe_allow_html=True)
             
             # Pulsanti Streamlit funzionali fuori dal div HTML
             col1, col2 = st.columns(2)
