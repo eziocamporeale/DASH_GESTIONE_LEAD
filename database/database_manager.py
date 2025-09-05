@@ -2001,8 +2001,17 @@ class DatabaseManager:
         """Ottiene un singolo script"""
         if self.use_supabase:
             try:
-                result = self.supabase.table('scripts').select('*').eq('id', script_id).execute()
-                return result.data[0] if result.data else None
+                # Prova prima con la tabella scripts_simple
+                try:
+                    result = self.supabase.table('scripts_simple').select('*').eq('id', script_id).execute()
+                    if result.data:
+                        return result.data[0]
+                except Exception as e:
+                    logger.warning(f"⚠️ Tabella scripts_simple non esiste, prova con scripts: {e}")
+                    # Fallback alla tabella originale
+                    result = self.supabase.table('scripts').select('*').eq('id', script_id).execute()
+                    return result.data[0] if result.data else None
+                return None
             except Exception as e:
                 logger.error(f"❌ Errore get_script Supabase: {e}")
                 return None
@@ -2027,8 +2036,19 @@ class DatabaseManager:
                     'category': category,
                     'is_active': is_active
                 }
-                result = self.supabase.table('scripts').update(data).eq('id', script_id).execute()
-                return len(result.data) > 0
+                
+                # Prova prima con la tabella scripts_simple
+                try:
+                    result = self.supabase.table('scripts_simple').update(data).eq('id', script_id).execute()
+                    if len(result.data) > 0:
+                        logger.info("✅ Script aggiornato in scripts_simple")
+                        return True
+                except Exception as e:
+                    logger.warning(f"⚠️ Tabella scripts_simple non esiste, prova con scripts: {e}")
+                    # Fallback alla tabella originale
+                    result = self.supabase.table('scripts').update(data).eq('id', script_id).execute()
+                    return len(result.data) > 0
+                return False
             except Exception as e:
                 logger.error(f"❌ Errore update_script Supabase: {e}")
                 return False
@@ -2044,8 +2064,18 @@ class DatabaseManager:
         """Elimina un script"""
         if self.use_supabase:
             try:
-                result = self.supabase.table('scripts').delete().eq('id', script_id).execute()
-                return len(result.data) > 0
+                # Prova prima con la tabella scripts_simple
+                try:
+                    result = self.supabase.table('scripts_simple').delete().eq('id', script_id).execute()
+                    if len(result.data) > 0:
+                        logger.info("✅ Script eliminato da scripts_simple")
+                        return True
+                except Exception as e:
+                    logger.warning(f"⚠️ Tabella scripts_simple non esiste, prova con scripts: {e}")
+                    # Fallback alla tabella originale
+                    result = self.supabase.table('scripts').delete().eq('id', script_id).execute()
+                    return len(result.data) > 0
+                return False
             except Exception as e:
                 logger.error(f"❌ Errore delete_script Supabase: {e}")
                 return False

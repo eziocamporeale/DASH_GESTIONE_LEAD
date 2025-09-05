@@ -372,6 +372,10 @@ class ScriptsManager:
                 # Azioni per ogni riga
                 self.render_script_actions(df)
                 
+                # Mostra modal di eliminazione se presente
+                if 'delete_modal_script' in st.session_state:
+                    self.show_delete_modal(st.session_state['delete_modal_script'])
+                
         except Exception as e:
             st.error(f"❌ Errore caricamento script: {e}")
     
@@ -405,7 +409,8 @@ class ScriptsManager:
             
             with col3:
                 if st.button("🗑️ Elimina", key=f"delete_{selected_row['id']}", use_container_width=True):
-                    self.show_delete_modal(selected_row)
+                    st.session_state['delete_modal_script'] = selected_row
+                    st.rerun()
             
             with col4:
                 if st.button("📋 Copia Contenuto", key=f"copy_{selected_row['id']}", use_container_width=True):
@@ -422,15 +427,25 @@ class ScriptsManager:
         col1, col2 = st.columns(2)
         
         with col1:
-            if st.button("✅ Conferma Eliminazione", type="primary"):
-                if self.delete_script(script['id']):
-                    st.success("✅ Script eliminato con successo!")
-                    st.rerun()
-                else:
-                    st.error("❌ Errore eliminazione script")
+            if st.button("✅ Conferma Eliminazione", type="primary", key=f"confirm_delete_{script['id']}"):
+                try:
+                    success = self.delete_script(script['id'])
+                    if success:
+                        st.success("✅ Script eliminato con successo!")
+                        # Reset del modal
+                        if 'delete_modal_script' in st.session_state:
+                            del st.session_state['delete_modal_script']
+                        st.rerun()
+                    else:
+                        st.error("❌ Errore eliminazione script")
+                except Exception as e:
+                    st.error(f"❌ Errore durante eliminazione: {e}")
         
         with col2:
-            if st.button("❌ Annulla"):
+            if st.button("❌ Annulla", key=f"cancel_delete_{script['id']}"):
+                # Reset del modal
+                if 'delete_modal_script' in st.session_state:
+                    del st.session_state['delete_modal_script']
                 st.rerun()
     
     def show_delete_multiple_modal(self):
