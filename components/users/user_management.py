@@ -165,12 +165,60 @@ class UserManagement:
             
             display_df = display_df.rename(columns=column_mapping)
             
-            # Mostra la tabella
-            st.dataframe(
-                display_df,
-                use_container_width=True,
-                hide_index=True
-            )
+            # Mostra la tabella con azioni
+            self.render_interactive_user_table(display_df, df)
+    
+    def render_interactive_user_table(self, display_df, original_df):
+        """Renderizza una tabella interattiva con pulsanti per ogni utente"""
+        
+        # Crea una tabella con Streamlit
+        for index, row in display_df.iterrows():
+            # Ottieni i dati originali per questo utente
+            original_row = original_df.iloc[index]
+            user_id = original_row['id']
+            
+            # Crea un container per ogni riga utente
+            with st.container():
+                col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
+                
+                with col1:
+                    st.write(f"**{row['👤 Nome Completo']}**")
+                    st.write(f"📧 {row['📧 Email']}")
+                    st.write(f"🔑 {row['🔑 Username']}")
+                
+                with col2:
+                    st.write(f"🏢 {row['🏢 Ruolo']}")
+                    st.write(f"📋 {row['📋 Dipartimento']}")
+                
+                with col3:
+                    st.write(f"📞 {row['📞 Telefono']}")
+                    st.write(f"📈 {row['📈 Stato']}")
+                
+                with col4:
+                    st.write(f"👑 {row['👑 Admin']}")
+                    st.write(f"📅 {row['📅 Creato']}")
+                
+                with col5:
+                    # Pulsanti azioni
+                    if st.button("✏️", key=f"edit_{user_id}", help="Modifica utente"):
+                        st.session_state['show_user_form'] = True
+                        st.session_state['user_form_mode'] = 'edit'
+                        st.session_state['edit_user_data'] = original_row.to_dict()
+                        st.rerun()
+                    
+                    if st.button("🔐", key=f"pwd_{user_id}", help="Cambia password"):
+                        st.session_state['show_password_form'] = True
+                        st.session_state['password_mode'] = 'change'
+                        st.session_state['password_user_data'] = original_row.to_dict()
+                        st.rerun()
+                    
+                    if st.button("🔄", key=f"reset_{user_id}", help="Reset password"):
+                        st.session_state['show_password_form'] = True
+                        st.session_state['password_mode'] = 'reset'
+                        st.session_state['password_user_data'] = original_row.to_dict()
+                        st.rerun()
+                
+                st.markdown("---")
     
     def render_user_actions(self):
         """Renderizza le azioni per gli utenti"""
@@ -236,7 +284,7 @@ class UserManagement:
         
         # Azioni
         st.markdown("### 🔧 Azioni")
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         
         with col1:
             if st.button("✏️ Modifica", key=f"edit_user_{user_id}"):
@@ -246,10 +294,20 @@ class UserManagement:
                 st.rerun()
         
         with col2:
-            if st.button("🔒 Reset Password", key=f"reset_pwd_{user_id}"):
-                self.reset_user_password(user_id)
+            if st.button("🔐 Cambia Password", key=f"change_pwd_{user_id}"):
+                st.session_state['show_password_form'] = True
+                st.session_state['password_mode'] = 'change'
+                st.session_state['password_user_data'] = user
+                st.rerun()
         
         with col3:
+            if st.button("🔄 Reset Password", key=f"reset_pwd_{user_id}"):
+                st.session_state['show_password_form'] = True
+                st.session_state['password_mode'] = 'reset'
+                st.session_state['password_user_data'] = user
+                st.rerun()
+        
+        with col4:
             if st.button("🗑️ Elimina", key=f"delete_user_{user_id}"):
                 self.delete_user(user_id)
     
