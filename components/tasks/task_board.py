@@ -260,8 +260,22 @@ class TaskBoard:
             border_color = "#DC3545" if is_overdue else priority_color
             background_color = '#fff5f5' if is_overdue else '#ffffff'
             
-            # CSS INLINE SEMPLICE - tutto su una riga
-            st.markdown(f"""<div style="border:4px solid {border_color};border-radius:16px;padding:20px;margin:16px 0;background:{background_color};box-shadow:0 6px 12px rgba(0,0,0,0.2);min-height:120px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><div style="font-size:1.1rem;font-weight:bold;color:#2c3e50;">{task['title'][:20]}{'...' if len(task['title']) > 20 else ''}</div><div style="background:{priority_color};color:white;padding:4px 8px;border-radius:12px;font-size:10px;text-align:center;font-weight:bold;">{priority_name[:3]}</div></div><hr style="margin:12px 0;border:none;border-top:1px solid #e9ecef;"><div style="margin:12px 0;padding:12px;background:rgba(255,255,255,0.9);border-radius:12px;border-left:4px solid {priority_color};"><div style="margin:6px 0;font-size:14px;">📋 <strong>{task.get('task_type_name', 'N/A')[:8]}{'...' if len(task.get('task_type_name', 'N/A')) > 8 else ''}</strong></div><div style="margin:6px 0;font-size:14px;">👤 <strong>{task['assigned_first_name'][:8]}{'...' if len(task['assigned_first_name']) > 8 else ''}</strong></div>{lead_info}{due_date_info}{overdue_warning}</div><hr style="margin:12px 0;border:none;border-top:1px solid #e9ecef;"><div style="display:flex;gap:8px;"><button style="flex:1;padding:8px;background:white;border:1px solid #dee2e6;border-radius:8px;cursor:pointer;font-size:12px;" onclick="alert('Modifica task {task['id']}')">✏️ Modifica</button><button style="flex:1;padding:8px;background:white;border:1px solid #dee2e6;border-radius:8px;cursor:pointer;font-size:12px;" onclick="alert('Avanza task {task['id']}')">▶️ Avanza</button></div></div>""", unsafe_allow_html=True)
+            # CSS INLINE SEMPLICE - tutto su una riga (senza pulsanti HTML)
+            st.markdown(f"""<div style="border:4px solid {border_color};border-radius:16px;padding:20px;margin:16px 0;background:{background_color};box-shadow:0 6px 12px rgba(0,0,0,0.2);min-height:120px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><div style="font-size:1.1rem;font-weight:bold;color:#2c3e50;">{task['title'][:20]}{'...' if len(task['title']) > 20 else ''}</div><div style="background:{priority_color};color:white;padding:4px 8px;border-radius:12px;font-size:10px;text-align:center;font-weight:bold;">{priority_name[:3]}</div></div><hr style="margin:12px 0;border:none;border-top:1px solid #e9ecef;"><div style="margin:12px 0;padding:12px;background:rgba(255,255,255,0.9);border-radius:12px;border-left:4px solid {priority_color};"><div style="margin:6px 0;font-size:14px;">📋 <strong>{task.get('task_type_name', 'N/A')[:8]}{'...' if len(task.get('task_type_name', 'N/A')) > 8 else ''}</strong></div><div style="margin:6px 0;font-size:14px;">👤 <strong>{task['assigned_first_name'][:8]}{'...' if len(task['assigned_first_name']) > 8 else ''}</strong></div>{lead_info}{due_date_info}{overdue_warning}</div></div>""", unsafe_allow_html=True)
+            
+            # Pulsanti Streamlit funzionali fuori dal div HTML
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("✏️ Modifica", key=f"edit_task_{task['id']}", use_container_width=True):
+                    st.session_state['show_task_form'] = True
+                    st.session_state['task_form_mode'] = 'edit'
+                    st.session_state['edit_task_data'] = task
+                    st.rerun()
+            
+            with col2:
+                if st.button("▶️ Avanza", key=f"advance_task_{task['id']}", use_container_width=True):
+                    self.advance_task_state(task['id'], task['state_id'])
+                    st.rerun()
     
     def advance_task_state(self, task_id: int, current_state_id: int):
         """Avanza lo stato di un task"""
