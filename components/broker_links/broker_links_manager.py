@@ -13,9 +13,10 @@ import re
 class BrokerLinksManager:
     """Gestore per i link broker"""
     
-    def __init__(self, db_manager):
+    def __init__(self, db_manager, auth_manager=None):
         """Inizializza il gestore"""
         self.db = db_manager
+        self.auth_manager = auth_manager
         self.setup_session_state()
     
     def setup_session_state(self):
@@ -198,16 +199,9 @@ class BrokerLinksManager:
                         st.error("❌ Errore aggiornamento link broker")
                 else:
                     # Crea nuovo link
-                    # Ottieni user_id dalla sessione (UUID per Supabase)
-                    user_id = st.session_state.get('user_id', None)  # UUID per Supabase
-                    if not user_id:
-                        st.error("❌ Errore: ID utente non disponibile")
-                        return
-                    
                     link_id = self.db.create_broker_link(
                         broker_name.strip(),
-                        affiliate_link.strip(),
-                        user_id
+                        affiliate_link.strip()
                     )
                     if link_id:
                         st.success("✅ Link broker creato con successo!")

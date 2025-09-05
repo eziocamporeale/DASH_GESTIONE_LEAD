@@ -27,6 +27,7 @@ from components.tasks.task_form import render_task_form_wrapper
 from components.tasks.task_board import render_task_board_wrapper
 from components.users.user_form import render_user_form_wrapper
 from components.users.user_management import render_user_management_wrapper
+from components.users.password_manager import render_password_manager_wrapper
 from components.contacts.contact_template import render_template_form_wrapper
 from components.contacts.contact_sequence import render_sequence_form_wrapper, render_sequence_list_wrapper, render_sequence_stats_wrapper
 from components.settings.settings_manager import render_settings_wrapper
@@ -361,9 +362,9 @@ def render_users_page():
     st.markdown("## 👤 Gestione Utenti")
     st.markdown("Gestisci utenti, ruoli e dipartimenti")
     
-    # Controlla se mostrare il form o la gestione
+    # Controlla se mostrare il form utente, gestione password o la gestione principale
     if st.session_state.get('show_user_form', False):
-        # Mostra il form
+        # Mostra il form utente
         user_data = st.session_state.get('edit_user_data', None)
         mode = st.session_state.get('user_form_mode', 'create')
         
@@ -388,8 +389,12 @@ def render_users_page():
                 del st.session_state['user_form_mode']
             st.rerun()
     
+    elif st.session_state.get('show_password_form', False):
+        # Mostra la gestione password
+        render_password_manager_wrapper()
+    
     else:
-        # Mostra la gestione utenti
+        # Mostra la gestione utenti principale
         render_user_management_wrapper()
 
 def render_contacts_page():
@@ -510,9 +515,9 @@ def render_settings_page():
 
 def render_broker_links_page():
     """Renderizza la pagina dei link broker"""
-    # Inizializza il database manager
+    # Inizializza il database manager e auth manager
     db = DatabaseManager()
-    broker_manager = BrokerLinksManager(db)
+    broker_manager = BrokerLinksManager(db, auth_manager)
     broker_manager.render_broker_links_page()
 
 def render_scripts_page():

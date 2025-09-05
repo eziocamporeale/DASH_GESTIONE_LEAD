@@ -1671,23 +1671,38 @@ class DatabaseManager:
     # METODI PER GESTIONE BROKER LINKS
     # ========================================
     
-    def create_broker_link(self, broker_name: str, affiliate_link: str, created_by: str) -> Optional[int]:
+    def create_broker_link(self, broker_name: str, affiliate_link: str, created_by: str = None) -> Optional[int]:
         """Crea un nuovo link broker"""
         if self.use_supabase:
             try:
+                # Prova prima con la tabella broker_links_simple (senza RLS)
                 data = {
                     'broker_name': broker_name,
                     'affiliate_link': affiliate_link,
-                    'created_by': created_by,
                     'is_active': True
                 }
-                result = self.supabase.table('broker_links').insert(data).execute()
+                result = self.supabase.table('broker_links_simple').insert(data).execute()
                 if result.data:
+                    logger.info("✅ Broker link creato in tabella broker_links_simple")
                     return result.data[0]['id']
                 return None
             except Exception as e:
-                logger.error(f"❌ Errore create_broker_link Supabase: {e}")
-                return None
+                logger.warning(f"⚠️ Tabella broker_links_simple non esiste, prova con broker_links: {e}")
+                # Fallback alla tabella originale
+                try:
+                    data = {
+                        'broker_name': broker_name,
+                        'affiliate_link': affiliate_link,
+                        'is_active': True
+                    }
+                    result = self.supabase.table('broker_links').insert(data).execute()
+                    if result.data:
+                        logger.info("✅ Broker link creato in tabella broker_links")
+                        return result.data[0]['id']
+                    return None
+                except Exception as e2:
+                    logger.error(f"❌ Errore create_broker_link Supabase: {e2}")
+                    return None
         else:
             query = """
                 INSERT INTO broker_links (broker_name, affiliate_link, created_by, is_active, created_at, updated_at)
@@ -1703,19 +1718,45 @@ class DatabaseManager:
                 self.conn.rollback()
                 return None
     
+    def is_valid_uuid(self, uuid_string: str) -> bool:
+        """Verifica se una stringa è un UUID valido"""
+        import re
+        uuid_pattern = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+        return bool(re.match(uuid_pattern, uuid_string.lower()))
+    
     def get_broker_links(self, active_only: bool = True) -> List[Dict]:
         """Ottiene tutti i link broker"""
         if self.use_supabase:
             try:
-                query = self.supabase.table('broker_links').select('*')
+                # Prova prima con la tabella broker_links_simple
+                query = self.supabase.table('broker_links_simple').select('*')
                 if active_only:
                     query = query.eq('is_active', True)
                 query = query.order('created_at', desc=True)
                 result = query.execute()
-                return result.data
+                if result.data:
+                    logger.info("✅ Broker links recuperati da broker_links_simple")
+                    return result.data
+                else:
+                    # Fallback alla tabella originale
+                    query = self.supabase.table('broker_links').select('*')
+                    if active_only:
+                        query = query.eq('is_active', True)
+                    query = query.order('created_at', desc=True)
+                    result = query.execute()
+                    return result.data
             except Exception as e:
-                logger.error(f"❌ Errore get_broker_links Supabase: {e}")
-                return []
+                logger.warning(f"⚠️ Errore con broker_links_simple, prova con broker_links: {e}")
+                try:
+                    query = self.supabase.table('broker_links').select('*')
+                    if active_only:
+                        query = query.eq('is_active', True)
+                    query = query.order('created_at', desc=True)
+                    result = query.execute()
+                    return result.data
+                except Exception as e2:
+                    logger.error(f"❌ Errore get_broker_links Supabase: {e2}")
+                    return []
         else:
             query = """
                 SELECT bl.*, u.first_name, u.last_name 
