@@ -1893,7 +1893,7 @@ class DatabaseManager:
     # METODI PER GESTIONE SCRIPTS
     # ========================================
     
-    def create_script(self, title: str, content: str, script_type: str, category: str, created_by: str) -> Optional[int]:
+    def create_script(self, title: str, content: str, script_type: str, category: str, created_by: str = None) -> Optional[int]:
         """Crea un nuovo script"""
         if self.use_supabase:
             try:
@@ -1902,13 +1902,29 @@ class DatabaseManager:
                     'content': content,
                     'script_type': script_type,
                     'category': category,
-                    'created_by': created_by,
                     'is_active': True
                 }
-                result = self.supabase.table('scripts').insert(data).execute()
-                if result.data:
-                    return result.data[0]['id']
-                return None
+                
+                # Aggiungi created_by solo se è un UUID valido
+                if created_by and self.is_valid_uuid(str(created_by)):
+                    data['created_by'] = created_by
+                
+                # Prova prima con la tabella scripts_simple (senza RLS)
+                try:
+                    result = self.supabase.table('scripts_simple').insert(data).execute()
+                    if result.data:
+                        logger.info("✅ Script creato in tabella scripts_simple")
+                        return result.data[0]['id']
+                    return None
+                except Exception as e:
+                    logger.warning(f"⚠️ Tabella scripts_simple non esiste, prova con scripts: {e}")
+                    # Fallback alla tabella originale
+                    result = self.supabase.table('scripts').insert(data).execute()
+                    if result.data:
+                        logger.info("✅ Script creato in tabella scripts")
+                        return result.data[0]['id']
+                    return None
+                    
             except Exception as e:
                 logger.error(f"❌ Errore create_script Supabase: {e}")
                 return None
@@ -1931,16 +1947,32 @@ class DatabaseManager:
         """Ottiene tutti gli script con filtri opzionali"""
         if self.use_supabase:
             try:
-                query = self.supabase.table('scripts').select('*')
-                if active_only:
-                    query = query.eq('is_active', True)
-                if script_type:
-                    query = query.eq('script_type', script_type)
-                if category:
-                    query = query.eq('category', category)
-                query = query.order('created_at', desc=True)
-                result = query.execute()
-                return result.data
+                # Prova prima con la tabella scripts_simple
+                try:
+                    query = self.supabase.table('scripts_simple').select('*')
+                    if active_only:
+                        query = query.eq('is_active', True)
+                    if script_type:
+                        query = query.eq('script_type', script_type)
+                    if category:
+                        query = query.eq('category', category)
+                    query = query.order('created_at', desc=True)
+                    result = query.execute()
+                    logger.info("✅ Script recuperati da scripts_simple")
+                    return result.data
+                except Exception as e:
+                    logger.warning(f"⚠️ Tabella scripts_simple non esiste, prova con scripts: {e}")
+                    # Fallback alla tabella originale
+                    query = self.supabase.table('scripts').select('*')
+                    if active_only:
+                        query = query.eq('is_active', True)
+                    if script_type:
+                        query = query.eq('script_type', script_type)
+                    if category:
+                        query = query.eq('category', category)
+                    query = query.order('created_at', desc=True)
+                    result = query.execute()
+                    return result.data
             except Exception as e:
                 logger.error(f"❌ Errore get_scripts Supabase: {e}")
                 return []
