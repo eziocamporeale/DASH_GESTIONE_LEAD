@@ -172,8 +172,6 @@ class BrokerLinksManager:
                 
                 if not affiliate_link.strip():
                     validation_errors.append("❌ Link affiliate obbligatorio")
-                elif not self.is_valid_url(affiliate_link):
-                    validation_errors.append("❌ Link affiliate non valido")
                 
                 # Mostra errori di validazione
                 if validation_errors:

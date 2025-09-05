@@ -1849,8 +1849,15 @@ class DatabaseManager:
         """Ottiene le statistiche dei link broker"""
         if self.use_supabase:
             try:
-                all_links = self.supabase.table('broker_links').select('*').execute()
-                links = all_links.data
+                # Prova prima con broker_links_simple (senza RLS)
+                try:
+                    all_links = self.supabase.table('broker_links_simple').select('*').execute()
+                    links = all_links.data
+                    logger.info("✅ Statistiche broker links ottenute da broker_links_simple")
+                except Exception as e:
+                    logger.warning(f"⚠️ Fallback a broker_links originale: {e}")
+                    all_links = self.supabase.table('broker_links').select('*').execute()
+                    links = all_links.data
                 
                 total_links = len(links)
                 active_links = len([l for l in links if l.get('is_active', False)])
