@@ -2119,8 +2119,15 @@ class DatabaseManager:
         """Ottiene le statistiche degli script"""
         if self.use_supabase:
             try:
-                all_scripts = self.supabase.table('scripts').select('*').execute()
-                scripts = all_scripts.data
+                # Prova prima con scripts_simple (senza RLS)
+                try:
+                    all_scripts = self.supabase.table('scripts_simple').select('*').execute()
+                    scripts = all_scripts.data
+                    logger.info("✅ Statistiche ottenute da scripts_simple")
+                except Exception as e:
+                    logger.warning(f"⚠️ Fallback a scripts originale: {e}")
+                    all_scripts = self.supabase.table('scripts').select('*').execute()
+                    scripts = all_scripts.data
                 
                 total_scripts = len(scripts)
                 active_scripts = len([s for s in scripts if s.get('is_active', False)])
