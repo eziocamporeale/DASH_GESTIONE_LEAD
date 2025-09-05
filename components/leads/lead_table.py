@@ -146,7 +146,7 @@ class LeadTable:
         if not df.empty:
             # Seleziona solo le colonne da mostrare
             display_columns = [
-                'Nome Completo', 'email', 'company', 'state_name', 
+                'Nome Completo', 'email', 'phone', 'company', 'state_name', 
                 'category_name', 'priority_name', 'Assegnato a', 
                 'budget', 'expected_close_date', 'created_at'
             ]
@@ -159,6 +159,7 @@ class LeadTable:
             column_mapping = {
                 'Nome Completo': '👤 Nome',
                 'email': '📧 Email',
+                'phone': '📞 Telefono',
                 'company': '🏢 Azienda',
                 'state_name': '📈 Stato',
                 'category_name': '🏷️ Categoria',
