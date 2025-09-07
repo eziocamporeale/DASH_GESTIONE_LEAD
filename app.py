@@ -69,6 +69,7 @@ st.markdown("""
         text-align: center;
         position: relative;
         overflow: hidden;
+        border-radius: 15px;
     }
     .main-header::before {
         content: '';
@@ -135,7 +136,8 @@ def render_header():
     st.markdown("""
     <div class="main-header">
         <div class="header-content">
-            <div class="header-subtitle">Dashboard per la Gestione dei Lead Aziendali</div>
+            <div class="header-title">🎯 DASH_GESTIONE_LEAD</div>
+            <div class="header-subtitle">🧭 Navigazione Dashboard</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -549,8 +551,7 @@ def main():
         return
     
     # Utente autenticato - mostra l'applicazione
-    # Titolo principale dell'applicazione
-    st.title("🎯 DASH_GESTIONE_LEAD")
+    render_header()
     
     # Gestione sidebar temporanea dopo login
     show_sidebar = False

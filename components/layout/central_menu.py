@@ -95,7 +95,6 @@ def render_central_menu(current_page: str = "📊 Dashboard") -> str:
     st.markdown("""
     <div class="central-menu">
         <div class="menu-container">
-            <div class="menu-title">🧭 Navigazione Dashboard</div>
             <div class="menu-buttons">
     """, unsafe_allow_html=True)
     
