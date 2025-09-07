@@ -30,28 +30,8 @@ def render_central_menu(current_page: str = "📊 Dashboard") -> str:
     # CSS per il menu centrale sempre visibile
     st.markdown("""
     <style>
-    .central-menu {
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1rem 0;
-        margin: -1rem -1rem 2rem -1rem;
-        border-radius: 0 0 15px 15px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    }
-    .menu-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 1rem;
-    }
-    .menu-title {
-        text-align: center;
-        color: white;
-        font-size: 1.5rem;
-        font-weight: bold;
-        margin-bottom: 1rem;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    .menu-buttons {
+        margin: 1rem 0;
     }
     .menu-buttons {
         display: flex;
@@ -60,9 +40,9 @@ def render_central_menu(current_page: str = "📊 Dashboard") -> str:
         gap: 0.5rem;
     }
     .menu-btn {
-        background: rgba(255,255,255,0.2);
-        color: white;
-        border: 2px solid rgba(255,255,255,0.3);
+        background: white;
+        color: #333;
+        border: 2px solid #e0e0e0;
         padding: 0.5rem 1rem;
         border-radius: 25px;
         font-size: 0.9rem;
@@ -71,17 +51,18 @@ def render_central_menu(current_page: str = "📊 Dashboard") -> str:
         transition: all 0.3s ease;
         text-decoration: none;
         display: inline-block;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     .menu-btn:hover {
-        background: rgba(255,255,255,0.3);
-        border-color: rgba(255,255,255,0.5);
+        background: #f5f5f5;
+        border-color: #667eea;
         transform: translateY(-2px);
         box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
     .menu-btn.active {
-        background: rgba(255,255,255,0.9);
-        color: #667eea;
-        border-color: white;
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
         font-weight: bold;
     }
     .menu-btn.active:hover {
@@ -91,11 +72,9 @@ def render_central_menu(current_page: str = "📊 Dashboard") -> str:
     </style>
     """, unsafe_allow_html=True)
     
-    # Container del menu centrale
+    # Container del menu (senza background viola)
     st.markdown("""
-    <div class="central-menu">
-        <div class="menu-container">
-            <div class="menu-buttons">
+    <div class="menu-buttons">
     """, unsafe_allow_html=True)
     
     # Ottieni le opzioni del menu basate sui permessi utente
