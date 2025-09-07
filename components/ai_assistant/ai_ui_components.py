@@ -279,20 +279,22 @@ class AIUIComponents:
             )
         
         with col2:
-            if st.button("🔍 Analizza Lead", use_container_width=True, type="primary", key="ai_analyze_single_lead"):
-                with st.spinner("🤖 Analizzando lead..."):
-                    analysis_result = self.lead_analyzer.analyze_lead(selected_lead_id)
-                    
-                    if analysis_result:
-                        # Container a larghezza piena per l'analisi
-                        with st.container():
-                            self._display_lead_analysis_result(analysis_result)
-                    else:
-                        st.error("❌ Errore nell'analisi del lead")
+            analyze_clicked = st.button("🔍 Analizza Lead", use_container_width=True, type="primary", key="ai_analyze_single_lead")
         
         with col3:
             if st.button("🔄 Ricarica", use_container_width=True, key="reload_analysis_btn"):
                 st.rerun()
+        
+        # Analisi a larghezza piena (fuori dalle colonne)
+        if analyze_clicked:
+            with st.spinner("🤖 Analizzando lead..."):
+                analysis_result = self.lead_analyzer.analyze_lead(selected_lead_id)
+                
+                if analysis_result:
+                    # Analisi a larghezza piena senza container
+                    self._display_lead_analysis_result(analysis_result)
+                else:
+                    st.error("❌ Errore nell'analisi del lead")
         
         st.divider()
         
@@ -543,9 +545,8 @@ class AIUIComponents:
         # Analisi AI - Layout a larghezza piena
         st.markdown("#### 🤖 Analisi AI:")
         
-        # Container per l'analisi con larghezza massima
-        with st.container():
-            st.markdown(analysis_result['analysis_content'])
+        # Analisi a larghezza piena senza container
+        st.markdown(analysis_result['analysis_content'])
         
         # Separatore
         st.divider()
