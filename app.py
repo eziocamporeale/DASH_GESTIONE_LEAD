@@ -135,7 +135,6 @@ def render_header():
     st.markdown("""
     <div class="main-header">
         <div class="header-content">
-            <div class="header-title">🎯 DASH_GESTIONE_LEAD</div>
             <div class="header-subtitle">Dashboard per la Gestione dei Lead Aziendali</div>
         </div>
     </div>
