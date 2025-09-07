@@ -92,7 +92,6 @@ def render_login_form() -> Optional[Dict]:
         st.markdown("""
         <div class="login-header">
             <div class="login-title">🎯 DASH_GESTIONE_LEAD</div>
-            <div class="login-subtitle">Dashboard per la Gestione dei Lead</div>
         </div>
         """, unsafe_allow_html=True)
         
