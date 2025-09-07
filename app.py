@@ -33,7 +33,6 @@ from components.contacts.contact_sequence import render_sequence_form_wrapper, r
 from components.settings.settings_manager import render_settings_wrapper
 from components.broker_links.broker_links_manager import BrokerLinksManager
 from components.scripts.scripts_manager import ScriptsManager
-from components.portal_generator.portal_manager import PortalManager
 from components.ai_assistant.ai_ui_components import render_ai_assistant
 
 # Configurazione pagina
@@ -531,10 +530,9 @@ def render_scripts_page():
 
 def render_portals_page():
     """Renderizza la pagina dei portali web"""
-    # Inizializza il database manager
-    db = DatabaseManager()
-    portal_manager = PortalManager(db)
-    portal_manager.render_portals_page()
+    st.info("🚧 Modulo Portali in sviluppo - Sarà disponibile prossimamente")
+    st.markdown("### 🌐 Portali Web")
+    st.markdown("Questa funzionalità è attualmente in fase di sviluppo.")
 
 def render_ai_assistant_page():
     """Renderizza la pagina dell'assistente AI"""
