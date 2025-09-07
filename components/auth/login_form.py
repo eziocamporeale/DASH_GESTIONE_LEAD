@@ -88,12 +88,7 @@ def render_login_form() -> Optional[Dict]:
     with st.container():
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
         
-        # Header del login
-        st.markdown("""
-        <div class="login-header">
-            <div class="login-title">🎯 DASH_GESTIONE_LEAD</div>
-        </div>
-        """, unsafe_allow_html=True)
+        # Header del login rimosso - titolo ora nel riquadro viola principale
         
         # Form di login
         with st.form("login_form", clear_on_submit=True):
@@ -218,7 +213,6 @@ def main():
         layout="centered"
     )
     
-    st.title("🎯 DASH_GESTIONE_LEAD")
     st.markdown("### Sistema di Autenticazione")
     
     # Test del form di login
