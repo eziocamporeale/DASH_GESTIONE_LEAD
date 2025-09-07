@@ -551,6 +551,9 @@ def main():
     # Utente autenticato - mostra l'applicazione
     render_header()
     
+    # Titolo principale dell'applicazione
+    st.title("🎯 DASH_GESTIONE_LEAD")
+    
     # Gestione sidebar temporanea dopo login
     show_sidebar = False
     if st.session_state.get('show_sidebar_temporarily', False):
