@@ -99,6 +99,56 @@ BACKUP_RETENTION_DAYS = 30
 LOG_LEVEL = "INFO"
 LOG_FILE = BASE_DIR / "logs" / "app.log"
 
+# Configurazione Assistente AI DeepSeek
+DEEPSEEK_API_KEY = "sk-f7531fb25e8a4ba3ae22d8b33c7d97a1"
+DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
+DEEPSEEK_MODEL = "deepseek-chat"
+
+# Configurazione AI Assistant
+AI_ASSISTANT_CONFIG = {
+    'max_tokens': 1500,
+    'temperature': 0.7,
+    'timeout': 60,
+    'retry_attempts': 3,
+    'cache_responses': True,
+    'cache_duration_hours': 24
+}
+
+# Prompt templates per AI Assistant
+AI_PROMPTS = {
+    'sales_script': """
+    Genera uno script di vendita per:
+    Lead: {lead_data}
+    Settore: {industry}
+    Budget: {budget}
+    Fonte: {source}
+    Stato: {status}
+    
+    Includi: apertura, presentazione valore, gestione obiezioni, chiusura.
+    Risposta in italiano, professionale.
+    """,
+    
+    'marketing_advice': """
+    Analizza questi dati marketing e fornisci consigli:
+    Lead: {leads_data}
+    Campagne: {campaign_data}
+    Team: {team_metrics}
+    
+    Suggerisci: trend, miglioramenti, campagne, ottimizzazioni.
+    Risposta in italiano, pratica.
+    """,
+    
+    'lead_analysis': """
+    Analizza questo lead:
+    Lead: {lead_data}
+    Contatti: {contact_history}
+    Attività: {recent_activities}
+    
+    Fornisci: score qualità, probabilità conversione, approccio consigliato.
+    Risposta in italiano, dettagliata.
+    """
+}
+
 # Creazione directory necessarie
 def create_directories():
     """Crea le directory necessarie per il funzionamento dell'app"""
