@@ -33,6 +33,8 @@ from components.contacts.contact_sequence import render_sequence_form_wrapper, r
 from components.settings.settings_manager import render_settings_wrapper
 from components.broker_links.broker_links_manager import BrokerLinksManager
 from components.scripts.scripts_manager import ScriptsManager
+from components.portal_generator.portal_manager import PortalManager
+from components.ai_assistant.ai_ui_components import render_ai_assistant
 
 # Configurazione pagina
 st.set_page_config(
@@ -527,6 +529,17 @@ def render_scripts_page():
     scripts_manager = ScriptsManager(db)
     scripts_manager.render_scripts_page()
 
+def render_portals_page():
+    """Renderizza la pagina dei portali web"""
+    # Inizializza il database manager
+    db = DatabaseManager()
+    portal_manager = PortalManager(db)
+    portal_manager.render_portals_page()
+
+def render_ai_assistant_page():
+    """Renderizza la pagina dell'assistente AI"""
+    render_ai_assistant()
+
 def main():
     """Funzione principale dell'applicazione"""
     
@@ -571,6 +584,10 @@ def main():
         render_leads_page()
     elif page == "✅ Task":
         render_tasks_page()
+    elif page == "🤖 AI Assistant":
+        render_ai_assistant_page()
+    elif page == "🌐 Portali":
+        render_portals_page()
     elif page == "👤 Utenti":
         render_users_page()
     elif page == "📞 Contatti":

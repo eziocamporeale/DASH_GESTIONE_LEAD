@@ -105,6 +105,8 @@ def render_central_menu(current_page: str = "📊 Dashboard") -> str:
         ("📊 Dashboard", "📊 Dashboard"),
         ("👥 Lead", "👥 Lead"), 
         ("✅ Task", "✅ Task"),
+        ("🤖 AI Assistant", "🤖 AI Assistant"),
+        ("🌐 Portali", "🌐 Portali"),
         ("📞 Contatti", "📞 Contatti"),
         ("🔗 Broker", "🔗 Broker"),
         ("📝 Script", "📝 Script"),
