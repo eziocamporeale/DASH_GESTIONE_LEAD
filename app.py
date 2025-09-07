@@ -549,8 +549,6 @@ def main():
         return
     
     # Utente autenticato - mostra l'applicazione
-    render_header()
-    
     # Titolo principale dell'applicazione
     st.title("🎯 DASH_GESTIONE_LEAD")
     
