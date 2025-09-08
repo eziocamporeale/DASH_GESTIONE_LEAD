@@ -42,7 +42,9 @@ class TaskForm:
         task_types = self.db.get_task_types()
         lead_priorities = self.db.get_lead_priorities()
         users = self.db.get_all_users()
-        leads = self.db.get_leads() if not lead_id else []
+        # Ottieni TUTTI i lead (senza limite) per il form
+        # Sempre caricare tutti i lead per permettere la selezione
+        leads = self.db.get_all_leads()
         
         # Preparazione dati per selectbox
         states_options = {state['name']: state['id'] for state in task_states}
@@ -127,52 +129,39 @@ class TaskForm:
                 )
             
             with col2:
-                # Lead associato
-                if lead_id:
-                    # Se è specificato un lead, mostra solo quello
-                    lead = self.db.get_lead(lead_id)
+                # Lead associato - sempre permettere la selezione
+                current_lead = lead_id if lead_id else (task_data.get('lead_id') if task_data else None)
+                
+                if current_lead:
+                    lead = self.db.get_lead(current_lead)
                     if lead:
-                        # Gestisce sia first_name/last_name che name per i leads
                         if 'first_name' in lead and 'last_name' in lead:
                             lead_name = f"{lead['first_name']} {lead['last_name']}"
                         elif 'name' in lead:
                             lead_name = lead['name']
                         else:
                             lead_name = "Lead senza nome"
-                        st.markdown(f"**Lead associato:** {lead_name} ({lead['company'] or 'N/A'})")
-                        selected_lead = lead_id
-                    else:
-                        st.error("Lead non trovato")
-                        return None
-                else:
-                    # Seleziona lead da lista
-                    current_lead = task_data.get('lead_id') if task_data else None
-                    if current_lead:
-                        lead = self.db.get_lead(current_lead)
-                        if lead:
-                            if 'first_name' in lead and 'last_name' in lead:
-                                lead_name = f"{lead['first_name']} {lead['last_name']}"
-                            elif 'name' in lead:
-                                lead_name = lead['name']
-                            else:
-                                lead_name = "Lead senza nome"
-                            current_lead_name = f"{lead_name} ({lead['company'] or 'N/A'})"
-                        else:
-                            current_lead_name = ""
+                        current_lead_name = f"{lead_name} ({lead['company'] or 'N/A'})"
                     else:
                         current_lead_name = ""
-                    
-                    # Trova l'indice corretto per il lead corrente
-                    lead_index = 0
-                    if current_lead_name and current_lead_name in leads_options.keys():
-                        lead_index = list(leads_options.keys()).index(current_lead_name) + 1
-                    
-                    selected_lead = st.selectbox(
-                        "Lead associato",
-                        options=[""] + list(leads_options.keys()),
-                        index=lead_index,
-                        help="Lead associato al task (opzionale)"
-                    )
+                else:
+                    current_lead_name = ""
+                
+                # Trova l'indice corretto per il lead corrente
+                lead_index = 0
+                if current_lead_name and current_lead_name in leads_options.keys():
+                    lead_index = list(leads_options.keys()).index(current_lead_name) + 1
+                
+                # Mostra info se lead_id è specificato
+                if lead_id:
+                    st.info(f"🎯 **Lead pre-selezionato**: {current_lead_name}")
+                
+                selected_lead = st.selectbox(
+                    "Lead associato",
+                    options=[""] + list(leads_options.keys()),
+                    index=lead_index,
+                    help="Lead associato al task (opzionale)" + (f" - Pre-selezionato: {current_lead_name}" if lead_id else "")
+                )
             
             # Date
             st.markdown("### 📅 Date")
