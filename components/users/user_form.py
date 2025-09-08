@@ -89,20 +89,32 @@ class UserForm:
             with col1:
                 # Ruolo
                 current_role = user_data.get('role_name', '') if user_data else ''
+                # Gestisce il caso in cui current_role sia "N/A" o non valido
+                if current_role and current_role != 'N/A' and current_role in roles_options:
+                    role_index = list(roles_options.keys()).index(current_role)
+                else:
+                    role_index = 0
+                
                 role = st.selectbox(
                     "Ruolo *",
                     options=list(roles_options.keys()),
-                    index=list(roles_options.keys()).index(current_role) if current_role else 0,
+                    index=role_index,
                     help="Ruolo dell'utente nel sistema"
                 )
             
             with col2:
                 # Dipartimento
                 current_department = user_data.get('department_name', '') if user_data else ''
+                # Gestisce il caso in cui current_department sia "N/A" o non valido
+                if current_department and current_department != 'N/A' and current_department in departments_options:
+                    department_index = list(departments_options.keys()).index(current_department) + 1
+                else:
+                    department_index = 0
+                
                 department = st.selectbox(
                     "Dipartimento",
                     options=[""] + list(departments_options.keys()),
-                    index=0 if not current_department else list(departments_options.keys()).index(current_department) + 1,
+                    index=department_index,
                     help="Dipartimento di appartenenza"
                 )
             
