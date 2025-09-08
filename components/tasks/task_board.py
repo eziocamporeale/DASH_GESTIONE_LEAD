@@ -520,6 +520,170 @@ class TaskBoard:
                 filters['assigned_to'] = user_id
         
         return filters
+    
+    def render_weekly_view(self, tasks: List[Dict]):
+        """Renderizza la vista settimanale dei task organizzati per giorni"""
+        
+        if not tasks:
+            st.info("📭 Nessun task trovato per questa settimana")
+            return
+        
+        # Converti i task in DataFrame per facilitare la manipolazione
+        df = pd.DataFrame(tasks)
+        
+        # Aggiungi colonna giorno della settimana
+        if 'due_date' in df.columns:
+            df['due_date'] = pd.to_datetime(df['due_date'], errors='coerce')
+            df['giorno_settimana'] = df['due_date'].dt.day_name()
+            df['data_formattata'] = df['due_date'].dt.strftime('%d/%m/%Y')
+        else:
+            st.warning("⚠️ Campo 'due_date' non trovato nei task")
+            return
+        
+        # Ordina i giorni della settimana
+        giorni_ordine = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        giorni_italiani = {
+            'Monday': 'Lunedì',
+            'Tuesday': 'Martedì', 
+            'Wednesday': 'Mercoledì',
+            'Thursday': 'Giovedì',
+            'Friday': 'Venerdì',
+            'Saturday': 'Sabato',
+            'Sunday': 'Domenica'
+        }
+        
+        # CSS per le card dei giorni
+        st.markdown("""
+        <style>
+        .giorno-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        .giorno-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+        .giorno-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .giorno-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .giorno-count {
+            background: rgba(255,255,255,0.2);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        .task-item {
+            background: rgba(255,255,255,0.1);
+            padding: 0.8rem;
+            margin: 0.5rem 0;
+            border-radius: 8px;
+            border-left: 4px solid #ffd700;
+        }
+        .task-title {
+            font-weight: bold;
+            margin-bottom: 0.3rem;
+        }
+        .task-details {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # Raggruppa i task per giorno
+        task_per_giorno = {}
+        for giorno in giorni_ordine:
+            task_per_giorno[giorno] = df[df['giorno_settimana'] == giorno]
+        
+        # Controlli per espandere/comprimere tutti
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col1:
+            if st.button("📖 Espandi Tutto", help="Espandi tutti i giorni"):
+                for giorno in giorni_ordine:
+                    collapse_key = f"collapse_{giorno.lower()}"
+                    st.session_state[collapse_key] = True
+                st.rerun()
+        
+        with col2:
+            if st.button("📕 Comprimi Tutto", help="Comprimi tutti i giorni"):
+                for giorno in giorni_ordine:
+                    collapse_key = f"collapse_{giorno.lower()}"
+                    st.session_state[collapse_key] = False
+                st.rerun()
+        
+        with col3:
+            st.markdown("**🎛️ Controlli Rapidi**")
+        
+        st.markdown("---")
+        
+        # Mostra i giorni della settimana con funzionalità collassabile
+        for giorno in giorni_ordine:
+            tasks_giorno = task_per_giorno[giorno]
+            giorno_italiano = giorni_italiani[giorno]
+            
+            if not tasks_giorno.empty:
+                # Crea una chiave unica per il session state
+                collapse_key = f"collapse_{giorno.lower()}"
+                
+                # Inizializza lo stato se non esiste
+                if collapse_key not in st.session_state:
+                    st.session_state[collapse_key] = True
+                
+                is_expanded = st.session_state[collapse_key]
+                
+                # Icona dinamica basata sullo stato di espansione
+                icona_espansione = "📖" if is_expanded else "📕"
+                
+                # Header del giorno cliccabile
+                st.markdown(f"""
+                <div class="giorno-card" style="cursor: pointer;" onclick="toggleDay('{collapse_key}')">
+                    <div class="giorno-header">
+                        <div class="giorno-title">{icona_espansione} {giorno_italiano}</div>
+                        <div class="giorno-count">{len(tasks_giorno)} task</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Pulsante invisibile per gestire il click
+                if st.button(f"Toggle {giorno_italiano}", key=f"btn_{collapse_key}", help=f"Clicca per espandere/comprimere {giorno_italiano}"):
+                    st.session_state[collapse_key] = not st.session_state[collapse_key]
+                    st.rerun()
+                
+                # Mostra i task del giorno solo se espanso
+                if is_expanded:
+                    for _, task in tasks_giorno.iterrows():
+                        stato = task.get('state_name', 'N/A')
+                        assegnato = f"{task.get('assigned_first_name', '')} {task.get('assigned_last_name', '')}".strip()
+                        if not assegnato:
+                            assegnato = "Non assegnato"
+                        
+                        st.markdown(f"""
+                        <div class="task-item">
+                            <div class="task-title">📋 {task.get('title', 'N/A')}</div>
+                            <div class="task-details">
+                                📅 {task.get('data_formattata', 'N/A')} | 
+                                👤 {assegnato} | 
+                                🏷️ {stato}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+        
+        # Se non ci sono task per nessun giorno
+        if all(task_per_giorno[giorno].empty for giorno in giorni_ordine):
+            st.info("📭 Nessun task con data di scadenza per questa settimana")
 
 def render_task_board_wrapper():
     """Wrapper per renderizzare la board task"""
@@ -613,6 +777,12 @@ def render_task_board_wrapper():
             margin: 0.5rem 0;
             color: white;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        .giorno-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
         }
         .giorno-header {
             display: flex;

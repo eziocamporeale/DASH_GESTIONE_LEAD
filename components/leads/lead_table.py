@@ -99,7 +99,11 @@ class LeadTable:
     def render_lead_table(self, filters: Dict = None, page_size: int = 20):
         """Renderizza la tabella dei lead"""
         
-        # Ottieni i lead dal database
+        # Ottieni il conteggio totale dei lead (senza limite)
+        total_leads = self.db.get_leads(filters=filters, limit=10000)  # Limite alto per conteggio
+        total_count = len(total_leads)
+        
+        # Ottieni i lead dal database per la visualizzazione
         leads = self.db.get_leads(filters=filters, limit=page_size)
         
         if not leads:
@@ -107,6 +111,12 @@ class LeadTable:
             # Mostra comunque le azioni rapide anche quando non ci sono lead
             self.render_lead_actions_empty()
             return
+        
+        # Mostra il conteggio corretto
+        if total_count > page_size:
+            st.info(f"📊 **Risultati ({total_count} lead trovati)** - Mostrando i primi {page_size}")
+        else:
+            st.info(f"📊 **Risultati ({total_count} lead trovati)**")
         
         # Converti in DataFrame
         df = pd.DataFrame(leads)
@@ -496,8 +506,8 @@ def render_lead_table_wrapper():
     # Filtri
     filters = table.render_filters()
     
-    # Tabella
-    table.render_lead_table(filters)
+    # Tabella - Mostra tutti i lead (limite aumentato a 1000)
+    table.render_lead_table(filters, page_size=1000)
 
 # Test della classe
 if __name__ == "__main__":
