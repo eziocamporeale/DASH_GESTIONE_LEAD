@@ -137,7 +137,6 @@ def render_header():
     <div class="main-header">
         <div class="header-content">
             <div class="header-title">🎯 DASH_GESTIONE_LEAD</div>
-            <div class="header-subtitle">🧭 Navigazione Dashboard</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
