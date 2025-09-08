@@ -31,124 +31,127 @@ class LeadTable:
     def render_filters(self) -> Dict:
         """Renderizza i filtri per la tabella lead"""
         
-        st.markdown("### 🔍 Filtri")
+        # Sezione filtri collassabile
+        with st.expander("🔍 Filtri", expanded=st.session_state.get('filters_expanded', True)):
+            # Salva lo stato dell'expander
+            st.session_state['filters_expanded'] = True
         
-        # Layout migliorato con 3 colonne come nella Dashboard CPA
-        col_filtro1, col_filtro2, col_filtro3 = st.columns(3)
-        
-        with col_filtro1:
-            # Filtro stato
-            states = self.db.get_lead_states()
-            state_options = ["Tutti"] + [state['name'] for state in states]
-            selected_state = st.selectbox(
-                "📈 Stato",
-                options=state_options,
-                index=0,
-                help="Filtra per stato del lead"
+            # Layout migliorato con 3 colonne come nella Dashboard CPA
+            col_filtro1, col_filtro2, col_filtro3 = st.columns(3)
+            
+            with col_filtro1:
+                # Filtro stato
+                states = self.db.get_lead_states()
+                state_options = ["Tutti"] + [state['name'] for state in states]
+                selected_state = st.selectbox(
+                    "📈 Stato",
+                    options=state_options,
+                    index=0,
+                    help="Filtra per stato del lead"
+                )
+            
+            with col_filtro2:
+                # Filtro categoria
+                categories = self.db.get_lead_categories()
+                category_options = ["Tutte"] + [cat['name'] for cat in categories]
+                selected_category = st.selectbox(
+                    "🏷️ Categoria",
+                    options=category_options,
+                    index=0,
+                    help="Filtra per categoria del lead"
+                )
+            
+            with col_filtro3:
+                # Filtro priorità
+                priorities = self.db.get_lead_priorities()
+                priority_options = ["Tutte"] + [priority['name'] for priority in priorities]
+                selected_priority = st.selectbox(
+                    "⚡ Priorità",
+                    options=priority_options,
+                    index=0,
+                    help="Filtra per priorità del lead"
+                )
+            
+            # Seconda riga di filtri
+            col_filtro4, col_filtro5, col_filtro6 = st.columns(3)
+            
+            with col_filtro4:
+                # Filtro assegnato a
+                users = self.db.get_all_users()
+                user_options = ["Tutti"] + [f"{user['first_name']} {user['last_name']}" for user in users]
+                selected_user = st.selectbox(
+                    "👥 Assegnato a",
+                    options=user_options,
+                    index=0,
+                    help="Filtra per utente assegnato"
+                )
+            
+            with col_filtro5:
+                # Filtro fonte
+                sources = self.db.get_lead_sources()
+                source_options = ["Tutte"] + [source['name'] for source in sources]
+                selected_source = st.selectbox(
+                    "🔗 Fonte",
+                    options=source_options,
+                    index=0,
+                    help="Filtra per fonte del lead"
+                )
+            
+            with col_filtro6:
+                # Filtro azienda
+                companies = self.db.get_leads(filters={}, limit=1000)  # Ottieni lead per estrarre aziende
+                company_list = list(set([lead.get('company', '') for lead in companies if lead.get('company')]))
+                company_options = ["Tutte"] + sorted(company_list)
+                selected_company = st.selectbox(
+                    "🏢 Azienda",
+                    options=company_options,
+                    index=0,
+                    help="Filtra per azienda"
+                )
+            
+            # Filtro di ricerca testuale migliorato
+            st.markdown("---")
+            search_term = st.text_input(
+                "🔍 Ricerca Avanzata",
+                placeholder="Nome, email, azienda, note...",
+                help="Cerca nei campi nome, email, azienda e note del lead"
             )
         
-        with col_filtro2:
-            # Filtro categoria
-            categories = self.db.get_lead_categories()
-            category_options = ["Tutte"] + [cat['name'] for cat in categories]
-            selected_category = st.selectbox(
-                "🏷️ Categoria",
-                options=category_options,
-                index=0,
-                help="Filtra per categoria del lead"
-            )
-        
-        with col_filtro3:
-            # Filtro priorità
-            priorities = self.db.get_lead_priorities()
-            priority_options = ["Tutte"] + [priority['name'] for priority in priorities]
-            selected_priority = st.selectbox(
-                "⚡ Priorità",
-                options=priority_options,
-                index=0,
-                help="Filtra per priorità del lead"
-            )
-        
-        # Seconda riga di filtri
-        col_filtro4, col_filtro5, col_filtro6 = st.columns(3)
-        
-        with col_filtro4:
-            # Filtro assegnato a
-            users = self.db.get_all_users()
-            user_options = ["Tutti"] + [f"{user['first_name']} {user['last_name']}" for user in users]
-            selected_user = st.selectbox(
-                "👥 Assegnato a",
-                options=user_options,
-                index=0,
-                help="Filtra per utente assegnato"
-            )
-        
-        with col_filtro5:
-            # Filtro fonte
-            sources = self.db.get_lead_sources()
-            source_options = ["Tutte"] + [source['name'] for source in sources]
-            selected_source = st.selectbox(
-                "🔗 Fonte",
-                options=source_options,
-                index=0,
-                help="Filtra per fonte del lead"
-            )
-        
-        with col_filtro6:
-            # Filtro azienda
-            companies = self.db.get_leads(filters={}, limit=1000)  # Ottieni lead per estrarre aziende
-            company_list = list(set([lead.get('company', '') for lead in companies if lead.get('company')]))
-            company_options = ["Tutte"] + sorted(company_list)
-            selected_company = st.selectbox(
-                "🏢 Azienda",
-                options=company_options,
-                index=0,
-                help="Filtra per azienda"
-            )
-        
-        # Filtro di ricerca testuale migliorato
-        st.markdown("---")
-        search_term = st.text_input(
-            "🔍 Ricerca Avanzata",
-            placeholder="Nome, email, azienda, note...",
-            help="Cerca nei campi nome, email, azienda e note del lead"
-        )
-        
-        # Preparazione filtri
-        filters = {}
-        
-        if selected_state != "Tutti":
-            state_id = next((state['id'] for state in states if state['name'] == selected_state), None)
-            if state_id:
-                filters['state_id'] = state_id
-        
-        if selected_category != "Tutte":
-            category_id = next((cat['id'] for cat in categories if cat['name'] == selected_category), None)
-            if category_id:
-                filters['category_id'] = category_id
-        
-        if selected_priority != "Tutte":
-            priority_id = next((priority['id'] for priority in priorities if priority['name'] == selected_priority), None)
-            if priority_id:
-                filters['priority_id'] = priority_id
-        
-        if selected_user != "Tutti":
-            user_id = next((user['id'] for user in users if f"{user['first_name']} {user['last_name']}" == selected_user), None)
-            if user_id:
-                filters['assigned_to'] = user_id
-        
-        if selected_source != "Tutte":
-            source_id = next((source['id'] for source in sources if source['name'] == selected_source), None)
-            if source_id:
-                filters['source_id'] = source_id
-        
-        if selected_company != "Tutte":
-            filters['company'] = selected_company
-        
-        if search_term:
-            filters['search'] = search_term
-        
-        return filters
+            # Preparazione filtri
+            filters = {}
+            
+            if selected_state != "Tutti":
+                state_id = next((state['id'] for state in states if state['name'] == selected_state), None)
+                if state_id:
+                    filters['state_id'] = state_id
+            
+            if selected_category != "Tutte":
+                category_id = next((cat['id'] for cat in categories if cat['name'] == selected_category), None)
+                if category_id:
+                    filters['category_id'] = category_id
+            
+            if selected_priority != "Tutte":
+                priority_id = next((priority['id'] for priority in priorities if priority['name'] == selected_priority), None)
+                if priority_id:
+                    filters['priority_id'] = priority_id
+            
+            if selected_user != "Tutti":
+                user_id = next((user['id'] for user in users if f"{user['first_name']} {user['last_name']}" == selected_user), None)
+                if user_id:
+                    filters['assigned_to'] = user_id
+            
+            if selected_source != "Tutte":
+                source_id = next((source['id'] for source in sources if source['name'] == selected_source), None)
+                if source_id:
+                    filters['source_id'] = source_id
+            
+            if selected_company != "Tutte":
+                filters['company'] = selected_company
+            
+            if search_term:
+                filters['search'] = search_term
+            
+            return filters
     
     def render_lead_table(self, filters: Dict = None, page_size: int = 20):
         """Renderizza la tabella dei lead"""
@@ -203,65 +206,67 @@ class LeadTable:
                 axis=1
             )
         
-        # Mostra statistiche
-        st.markdown(f"### 📊 Risultati ({len(leads)} lead trovati)")
-        
-        # Tabella con stile
-        if not df.empty:
-            # Seleziona solo le colonne da mostrare
-            display_columns = [
-                'Nome Completo', 'email', 'phone', 'company', 'state_name', 
-                'category_name', 'priority_name', 'Assegnato a', 
-                'budget', 'expected_close_date', 'created_at'
-            ]
+        # Sezione risultati collassabile
+        with st.expander(f"📊 Risultati ({len(leads)} lead trovati)", expanded=st.session_state.get('results_expanded', True)):
+            # Salva lo stato dell'expander
+            st.session_state['results_expanded'] = True
             
-            # Filtra le colonne disponibili
-            available_columns = [col for col in display_columns if col in df.columns]
-            display_df = df[available_columns]
-            
-            # Rinomina le colonne per una migliore visualizzazione
-            column_mapping = {
-                'Nome Completo': '👤 Nome',
-                'email': '📧 Email',
-                'phone': '📞 Telefono',
-                'company': '🏢 Azienda',
-                'state_name': '📈 Stato',
-                'category_name': '🏷️ Categoria',
-                'priority_name': '⚡ Priorità',
-                'Assegnato a': '👥 Assegnato',
-                'budget': '💰 Budget',
-                'expected_close_date': '📅 Chiusura',
-                'created_at': '📅 Creato'
-            }
-            
-            display_df = display_df.rename(columns=column_mapping)
-            
-            # Mostra la tabella con configurazione colonne avanzata
-            st.dataframe(
-                display_df,
-                width='stretch',
-                hide_index=True,
-                height=400,  # Altezza fissa per compattezza
-                column_config={
-                    "👤 Nome": st.column_config.TextColumn("Nome", width=150),
-                    "📧 Email": st.column_config.TextColumn("Email", width=180),
-                    "📞 Telefono": st.column_config.TextColumn("Telefono", width=120),
-                    "🏢 Azienda": st.column_config.TextColumn("Azienda", width=120),
-                    "📈 Stato": st.column_config.TextColumn("Stato", width=100),
-                    "🏷️ Categoria": st.column_config.TextColumn("Categoria", width=100),
-                    "⚡ Priorità": st.column_config.TextColumn("Priorità", width=80),
-                    "👥 Assegnato": st.column_config.TextColumn("Assegnato", width=120),
-                    "💰 Budget": st.column_config.TextColumn("Budget", width=100),
-                    "📅 Chiusura": st.column_config.TextColumn("Chiusura", width=100),
-                    "📅 Creato": st.column_config.TextColumn("Creato", width=100)
+            # Tabella con stile
+            if not df.empty:
+                # Seleziona solo le colonne da mostrare
+                display_columns = [
+                    'Nome Completo', 'email', 'phone', 'company', 'state_name', 
+                    'category_name', 'priority_name', 'Assegnato a', 
+                    'budget', 'expected_close_date', 'created_at'
+                ]
+                
+                # Filtra le colonne disponibili
+                available_columns = [col for col in display_columns if col in df.columns]
+                display_df = df[available_columns]
+                
+                # Rinomina le colonne per una migliore visualizzazione
+                column_mapping = {
+                    'Nome Completo': '👤 Nome',
+                    'email': '📧 Email',
+                    'phone': '📞 Telefono',
+                    'company': '🏢 Azienda',
+                    'state_name': '📈 Stato',
+                    'category_name': '🏷️ Categoria',
+                    'priority_name': '⚡ Priorità',
+                    'Assegnato a': '👥 Assegnato',
+                    'budget': '💰 Budget',
+                    'expected_close_date': '📅 Chiusura',
+                    'created_at': '📅 Creato'
                 }
-            )
-            
-            # Dettagli lead selezionato (come nella Dashboard CPA)
-            self.render_lead_details_section(df)
-            
-            # Azioni sui lead (usa il DataFrame originale con tutti i dati)
-            self.render_lead_actions(df)
+                
+                display_df = display_df.rename(columns=column_mapping)
+                
+                # Mostra la tabella con configurazione colonne avanzata
+                st.dataframe(
+                    display_df,
+                    width='stretch',
+                    hide_index=True,
+                    height=400,  # Altezza fissa per compattezza
+                    column_config={
+                        "👤 Nome": st.column_config.TextColumn("Nome", width=150),
+                        "📧 Email": st.column_config.TextColumn("Email", width=180),
+                        "📞 Telefono": st.column_config.TextColumn("Telefono", width=120),
+                        "🏢 Azienda": st.column_config.TextColumn("Azienda", width=120),
+                        "📈 Stato": st.column_config.TextColumn("Stato", width=100),
+                        "🏷️ Categoria": st.column_config.TextColumn("Categoria", width=100),
+                        "⚡ Priorità": st.column_config.TextColumn("Priorità", width=80),
+                        "👥 Assegnato": st.column_config.TextColumn("Assegnato", width=120),
+                        "💰 Budget": st.column_config.TextColumn("Budget", width=100),
+                        "📅 Chiusura": st.column_config.TextColumn("Chiusura", width=100),
+                        "📅 Creato": st.column_config.TextColumn("Creato", width=100)
+                    }
+                )
+                
+                # Dettagli lead selezionato (come nella Dashboard CPA)
+                self.render_lead_details_section(df)
+                
+                # Azioni sui lead (usa il DataFrame originale con tutti i dati)
+                self.render_lead_actions(df)
     
     def render_lead_details_section(self, df: pd.DataFrame):
         """Renderizza la sezione dettagli lead selezionato (come nella Dashboard CPA)"""
@@ -269,32 +274,13 @@ class LeadTable:
         if df.empty:
             return
         
-        st.markdown("### 👤 Dettagli Lead")
+        # Sezione dettagli lead collassabile
+        with st.expander("👤 Dettagli Lead", expanded=st.session_state.get('details_expanded', False)):
+            # Salva lo stato dell'expander
+            st.session_state['details_expanded'] = True
         
-        # Selezione lead per visualizzare i dettagli
-        lead_names = []
-        for _, row in df.iterrows():
-            if 'first_name' in row and 'last_name' in row:
-                name = f"{row['first_name']} {row['last_name']}".strip()
-            elif 'name' in row:
-                name = row['name']
-            else:
-                name = f"Lead ID {row.get('id', 'N/A')}"
-            lead_names.append(name)
-        
-        if not lead_names:
-            st.info("Nessun lead disponibile per i dettagli")
-            return
-        
-        lead_selezionato = st.selectbox(
-            "Seleziona un lead per visualizzare i dettagli completi:",
-            options=lead_names,
-            index=0
-        )
-        
-        if lead_selezionato:
-            # Trova il lead selezionato
-            lead_dettagli = None
+            # Selezione lead per visualizzare i dettagli
+            lead_names = []
             for _, row in df.iterrows():
                 if 'first_name' in row and 'last_name' in row:
                     name = f"{row['first_name']} {row['last_name']}".strip()
@@ -302,86 +288,108 @@ class LeadTable:
                     name = row['name']
                 else:
                     name = f"Lead ID {row.get('id', 'N/A')}"
-                
-                if name == lead_selezionato:
-                    lead_dettagli = row
-                    break
+                lead_names.append(name)
             
-            if lead_dettagli is not None:
-                # Mostra dettagli completi in due colonne
-                col_det1, col_det2 = st.columns(2)
+            if not lead_names:
+                st.info("Nessun lead disponibile per i dettagli")
+                return
+            
+            lead_selezionato = st.selectbox(
+                "Seleziona un lead per visualizzare i dettagli completi:",
+                options=lead_names,
+                index=0
+            )
+        
+            if lead_selezionato:
+                # Trova il lead selezionato
+                lead_dettagli = None
+                for _, row in df.iterrows():
+                    if 'first_name' in row and 'last_name' in row:
+                        name = f"{row['first_name']} {row['last_name']}".strip()
+                    elif 'name' in row:
+                        name = row['name']
+                    else:
+                        name = f"Lead ID {row.get('id', 'N/A')}"
+                    
+                    if name == lead_selezionato:
+                        lead_dettagli = row
+                        break
                 
-                with col_det1:
-                    st.markdown("**📋 Informazioni Base**")
-                    st.write(f"**Nome:** {lead_dettagli.get('first_name', '')} {lead_dettagli.get('last_name', '')}")
-                    st.write(f"**Email:** {lead_dettagli.get('email', 'Non specificato')}")
-                    st.write(f"**Telefono:** {lead_dettagli.get('phone', 'Non specificato')}")
-                    st.write(f"**Azienda:** {lead_dettagli.get('company', 'Non specificato')}")
-                    st.write(f"**Posizione:** {lead_dettagli.get('position', 'Non specificato')}")
-                
-                with col_det2:
-                    st.markdown("**📊 Informazioni Commerciali**")
-                    st.write(f"**Stato:** {lead_dettagli.get('state_name', 'Non specificato')}")
-                    st.write(f"**Categoria:** {lead_dettagli.get('category_name', 'Non specificato')}")
-                    st.write(f"**Priorità:** {lead_dettagli.get('priority_name', 'Non specificato')}")
-                    st.write(f"**Fonte:** {lead_dettagli.get('source_name', 'Non specificato')}")
-                    st.write(f"**Assegnato a:** {lead_dettagli.get('assigned_first_name', '')} {lead_dettagli.get('assigned_last_name', '')}")
-                
-                # Informazioni aggiuntive
-                col_det3, col_det4 = st.columns(2)
-                
-                with col_det3:
-                    st.markdown("**💰 Informazioni Finanziarie**")
-                    budget = lead_dettagli.get('budget')
-                    if budget and str(budget).strip() and str(budget).strip() != 'nan':
-                        try:
-                            budget_num = float(budget)
-                            if budget_num > 0:
-                                st.write(f"**Budget:** €{budget_num:,.2f}")
-                            else:
+                if lead_dettagli is not None:
+                    # Mostra dettagli completi in due colonne
+                    col_det1, col_det2 = st.columns(2)
+                    
+                    with col_det1:
+                        st.markdown("**📋 Informazioni Base**")
+                        st.write(f"**Nome:** {lead_dettagli.get('first_name', '')} {lead_dettagli.get('last_name', '')}")
+                        st.write(f"**Email:** {lead_dettagli.get('email', 'Non specificato')}")
+                        st.write(f"**Telefono:** {lead_dettagli.get('phone', 'Non specificato')}")
+                        st.write(f"**Azienda:** {lead_dettagli.get('company', 'Non specificato')}")
+                        st.write(f"**Posizione:** {lead_dettagli.get('position', 'Non specificato')}")
+                    
+                    with col_det2:
+                        st.markdown("**📊 Informazioni Commerciali**")
+                        st.write(f"**Stato:** {lead_dettagli.get('state_name', 'Non specificato')}")
+                        st.write(f"**Categoria:** {lead_dettagli.get('category_name', 'Non specificato')}")
+                        st.write(f"**Priorità:** {lead_dettagli.get('priority_name', 'Non specificato')}")
+                        st.write(f"**Fonte:** {lead_dettagli.get('source_name', 'Non specificato')}")
+                        st.write(f"**Assegnato a:** {lead_dettagli.get('assigned_first_name', '')} {lead_dettagli.get('assigned_last_name', '')}")
+                    
+                    # Informazioni aggiuntive
+                    col_det3, col_det4 = st.columns(2)
+                    
+                    with col_det3:
+                        st.markdown("**💰 Informazioni Finanziarie**")
+                        budget = lead_dettagli.get('budget')
+                        if budget and str(budget).strip() and str(budget).strip() != 'nan':
+                            try:
+                                budget_num = float(budget)
+                                if budget_num > 0:
+                                    st.write(f"**Budget:** €{budget_num:,.2f}")
+                                else:
+                                    st.write("**Budget:** Non specificato")
+                            except (ValueError, TypeError):
                                 st.write("**Budget:** Non specificato")
-                        except (ValueError, TypeError):
+                        else:
                             st.write("**Budget:** Non specificato")
-                    else:
-                        st.write("**Budget:** Non specificato")
-                    
-                    expected_close = lead_dettagli.get('expected_close_date')
-                    if expected_close:
-                        try:
-                            close_date = pd.to_datetime(expected_close).strftime('%d/%m/%Y')
-                            st.write(f"**Data Chiusura Prevista:** {close_date}")
-                        except:
+                        
+                        expected_close = lead_dettagli.get('expected_close_date')
+                        if expected_close:
+                            try:
+                                close_date = pd.to_datetime(expected_close).strftime('%d/%m/%Y')
+                                st.write(f"**Data Chiusura Prevista:** {close_date}")
+                            except:
+                                st.write("**Data Chiusura Prevista:** Non specificato")
+                        else:
                             st.write("**Data Chiusura Prevista:** Non specificato")
-                    else:
-                        st.write("**Data Chiusura Prevista:** Non specificato")
-                
-                with col_det4:
-                    st.markdown("**📅 Informazioni Sistema**")
-                    created_at = lead_dettagli.get('created_at')
-                    if created_at:
-                        try:
-                            created_date = pd.to_datetime(created_at).strftime('%d/%m/%Y %H:%M')
-                            st.write(f"**Creato il:** {created_date}")
-                        except:
-                            st.write("**Creato il:** Non specificato")
-                    else:
-                        st.write("**Creato il:** Non specificato")
                     
-                    updated_at = lead_dettagli.get('updated_at')
-                    if updated_at:
-                        try:
-                            updated_date = pd.to_datetime(updated_at).strftime('%d/%m/%Y %H:%M')
-                            st.write(f"**Modificato il:** {updated_date}")
-                        except:
+                    with col_det4:
+                        st.markdown("**📅 Informazioni Sistema**")
+                        created_at = lead_dettagli.get('created_at')
+                        if created_at:
+                            try:
+                                created_date = pd.to_datetime(created_at).strftime('%d/%m/%Y %H:%M')
+                                st.write(f"**Creato il:** {created_date}")
+                            except:
+                                st.write("**Creato il:** Non specificato")
+                        else:
+                            st.write("**Creato il:** Non specificato")
+                        
+                        updated_at = lead_dettagli.get('updated_at')
+                        if updated_at:
+                            try:
+                                updated_date = pd.to_datetime(updated_at).strftime('%d/%m/%Y %H:%M')
+                                st.write(f"**Modificato il:** {updated_date}")
+                            except:
+                                st.write("**Modificato il:** Non specificato")
+                        else:
                             st.write("**Modificato il:** Non specificato")
-                    else:
-                        st.write("**Modificato il:** Non specificato")
-                
-                # Note
-                notes = lead_dettagli.get('notes')
-                if notes and str(notes).strip():
-                    st.markdown("**📝 Note**")
-                    st.info(notes)
+                    
+                    # Note
+                    notes = lead_dettagli.get('notes')
+                    if notes and str(notes).strip():
+                        st.markdown("**📝 Note**")
+                        st.info(notes)
     
     def render_lead_actions_empty(self):
         """Renderizza le azioni rapide quando non ci sono lead"""
