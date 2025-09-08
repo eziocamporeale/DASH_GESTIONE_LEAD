@@ -249,7 +249,8 @@ class TaskBoard:
         lead_info = ""
         if task.get('lead_first_name') and task.get('lead_last_name'):
             lead_name = f"{task['lead_first_name']} {task['lead_last_name']}"
-            lead_info = f'<div style="margin: 6px 0; font-size: 14px;">👥 <strong>{lead_name[:15]}{"..." if len(lead_name) > 15 else ""}</strong></div>'
+            client_id = task.get('lead_client_id', 'N/A')
+            lead_info = f'<div style="margin: 6px 0; font-size: 14px;">👥 <strong>{lead_name[:15]}{"..." if len(lead_name) > 15 else ""}</strong></div><div style="margin: 6px 0; font-size: 12px; color: #666;">🔢 <strong>Cliente #{client_id}</strong></div>'
         
         # Descrizione del task
         description_info = ""
@@ -670,13 +671,20 @@ class TaskBoard:
                         if not assegnato:
                             assegnato = "Non assegnato"
                         
+                        # Informazioni del lead
+                        lead_info = ""
+                        if task.get('lead_first_name') and task.get('lead_last_name'):
+                            lead_name = f"{task.get('lead_first_name', '')} {task.get('lead_last_name', '')}".strip()
+                            client_id = task.get('lead_client_id', 'N/A')
+                            lead_info = f" | 👥 {lead_name} (#{client_id})"
+                        
                         st.markdown(f"""
                         <div class="task-item">
                             <div class="task-title">📋 {task.get('title', 'N/A')}</div>
                             <div class="task-details">
                                 📅 {task.get('data_formattata', 'N/A')} | 
                                 👤 {assegnato} | 
-                                🏷️ {stato}
+                                🏷️ {stato}{lead_info}
                             </div>
                         </div>
                         """, unsafe_allow_html=True)
@@ -868,13 +876,20 @@ def render_task_board_wrapper():
                         assigned = task.get('assigned_first_name', '') + ' ' + task.get('assigned_last_name', '')
                         assigned = assigned.strip() if assigned.strip() else 'Non assegnato'
                         
+                        # Informazioni del lead
+                        lead_info = ""
+                        if task.get('lead_first_name') and task.get('lead_last_name'):
+                            lead_name = f"{task.get('lead_first_name', '')} {task.get('lead_last_name', '')}".strip()
+                            client_id = task.get('lead_client_id', 'N/A')
+                            lead_info = f"<br>👥 {lead_name} (#{client_id})"
+                        
                         st.markdown(f"""
                         <div class="task-item {priority_class}">
                             <div class="task-title">{title}</div>
                             <div class="task-meta">
                                 📋 {state}<br>
                                 👤 {assigned}<br>
-                                📅 {task.get('data_formattata', 'N/A')}
+                                📅 {task.get('data_formattata', 'N/A')}{lead_info}
                             </div>
                         </div>
                         """, unsafe_allow_html=True)
