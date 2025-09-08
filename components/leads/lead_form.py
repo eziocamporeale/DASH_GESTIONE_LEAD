@@ -36,6 +36,18 @@ class LeadForm:
             mode: "create" per nuovo lead, "edit" per modifica
         """
         
+        # Controlla i permessi dell'utente
+        can_create = self.current_user and self.current_user.get('role_name') != 'Tester'
+        can_edit = self.current_user and self.current_user.get('role_name') != 'Tester'
+        
+        if mode == "create" and not can_create:
+            st.error("🔒 **Accesso Negato**: Il ruolo Tester non può creare nuovi lead per proteggere i dati")
+            return None
+        
+        if mode == "edit" and not can_edit:
+            st.error("🔒 **Accesso Negato**: Il ruolo Tester non può modificare lead per proteggere i dati")
+            return None
+        
         # Ottieni dati di lookup
         lead_states = self.db.get_lead_states()
         lead_categories = self.db.get_lead_categories()
