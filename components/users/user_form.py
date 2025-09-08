@@ -89,10 +89,16 @@ class UserForm:
             with col1:
                 # Ruolo
                 current_role = user_data.get('role_name', '') if user_data else ''
-                # Gestisce il caso in cui current_role sia "N/A" o non valido
-                if current_role and current_role != 'N/A' and current_role in roles_options:
-                    role_index = list(roles_options.keys()).index(current_role)
-                else:
+                # Gestione robusta del ruolo con controlli completi
+                role_index = 0  # Default: primo ruolo
+                try:
+                    if (current_role and 
+                        current_role != 'N/A' and 
+                        current_role != '' and
+                        current_role in roles_options):
+                        role_index = list(roles_options.keys()).index(current_role)
+                except (ValueError, TypeError, AttributeError):
+                    # In caso di qualsiasi errore, usa il default
                     role_index = 0
                 
                 role = st.selectbox(
@@ -105,10 +111,16 @@ class UserForm:
             with col2:
                 # Dipartimento
                 current_department = user_data.get('department_name', '') if user_data else ''
-                # Gestisce il caso in cui current_department sia "N/A" o non valido
-                if current_department and current_department != 'N/A' and current_department in departments_options:
-                    department_index = list(departments_options.keys()).index(current_department) + 1
-                else:
+                # Gestione robusta del dipartimento con controlli completi
+                department_index = 0  # Default: nessun dipartimento
+                try:
+                    if (current_department and 
+                        current_department != 'N/A' and 
+                        current_department != '' and
+                        current_department in departments_options):
+                        department_index = list(departments_options.keys()).index(current_department) + 1
+                except (ValueError, TypeError, AttributeError):
+                    # In caso di qualsiasi errore, usa il default
                     department_index = 0
                 
                 department = st.selectbox(
