@@ -31,8 +31,20 @@ class TaskBoard:
     def render_task_board(self, filters: Dict = None):
         """Renderizza la board Kanban dei task"""
         
+        # Selettore di visualizzazione
+        view_mode = st.radio(
+            "📊 Modalità Visualizzazione:",
+            ["📋 Board Kanban", "📅 Vista Settimanale"],
+            horizontal=True,
+            key="task_view_mode"
+        )
+        
         # Ottieni tutti i task
         tasks = self.db.get_tasks(filters=filters, limit=100)
+        
+        if view_mode == "📅 Vista Settimanale":
+            self.render_weekly_view(tasks)
+            return
         
         if not tasks:
             st.info("📭 Nessun task trovato")
@@ -559,6 +571,179 @@ def render_task_board_wrapper():
         
         with tab2:
             board.render_task_list(filters)
+    
+    def render_weekly_view(self, tasks: List[Dict]):
+        """Renderizza la vista settimanale dei task organizzati per giorni"""
+        
+        if not tasks:
+            st.info("📭 Nessun task trovato per questa settimana")
+            return
+        
+        # Converti i task in DataFrame per facilitare la manipolazione
+        df = pd.DataFrame(tasks)
+        
+        # Aggiungi colonna giorno della settimana
+        if 'due_date' in df.columns:
+            df['due_date'] = pd.to_datetime(df['due_date'], errors='coerce')
+            df['giorno_settimana'] = df['due_date'].dt.day_name()
+            df['data_formattata'] = df['due_date'].dt.strftime('%d/%m/%Y')
+        else:
+            st.warning("⚠️ Campo 'due_date' non trovato nei task")
+            return
+        
+        # Ordina i giorni della settimana
+        giorni_ordine = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        giorni_italiani = {
+            'Monday': 'Lunedì',
+            'Tuesday': 'Martedì', 
+            'Wednesday': 'Mercoledì',
+            'Thursday': 'Giovedì',
+            'Friday': 'Venerdì',
+            'Saturday': 'Sabato',
+            'Sunday': 'Domenica'
+        }
+        
+        # CSS per le card dei giorni
+        st.markdown("""
+        <style>
+        .giorno-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .giorno-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .giorno-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .task-count {
+            background: rgba(255,255,255,0.2);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        .task-item {
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            padding: 0.8rem;
+            margin: 0.5rem 0;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .task-title {
+            font-weight: bold;
+            margin-bottom: 0.3rem;
+        }
+        .task-meta {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        .priority-high { border-left-color: #dc3545; }
+        .priority-medium { border-left-color: #ffc107; }
+        .priority-low { border-left-color: #28a745; }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # Raggruppa i task per giorno
+        task_per_giorno = df.groupby('giorno_settimana')
+        
+        # Crea le colonne per i giorni della settimana
+        cols = st.columns(7)
+        
+        for i, giorno_eng in enumerate(giorni_ordine):
+            with cols[i]:
+                giorno_ita = giorni_italiani[giorno_eng]
+                
+                # Task per questo giorno
+                if giorno_eng in task_per_giorno.groups:
+                    tasks_giorno = task_per_giorno.get_group(giorno_eng)
+                    task_count = len(tasks_giorno)
+                else:
+                    tasks_giorno = pd.DataFrame()
+                    task_count = 0
+                
+                # Header del giorno
+                st.markdown(f"""
+                <div class="giorno-card">
+                    <div class="giorno-header">
+                        <div class="giorno-title">{giorno_ita}</div>
+                        <div class="task-count">{task_count} task</div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                # Task del giorno
+                if not tasks_giorno.empty:
+                    for _, task in tasks_giorno.iterrows():
+                        # Determina la classe CSS per la priorità
+                        priority_class = ""
+                        if 'priority_name' in task and task['priority_name']:
+                            if 'alta' in task['priority_name'].lower():
+                                priority_class = "priority-high"
+                            elif 'media' in task['priority_name'].lower():
+                                priority_class = "priority-medium"
+                            elif 'bassa' in task['priority_name'].lower():
+                                priority_class = "priority-low"
+                        
+                        # Informazioni del task
+                        title = task.get('title', 'N/A')
+                        state = task.get('state_name', 'N/A')
+                        assigned = task.get('assigned_first_name', '') + ' ' + task.get('assigned_last_name', '')
+                        assigned = assigned.strip() if assigned.strip() else 'Non assegnato'
+                        
+                        st.markdown(f"""
+                        <div class="task-item {priority_class}">
+                            <div class="task-title">{title}</div>
+                            <div class="task-meta">
+                                📋 {state}<br>
+                                👤 {assigned}<br>
+                                📅 {task.get('data_formattata', 'N/A')}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                else:
+                    st.markdown("""
+                    <div style="text-align: center; color: rgba(255,255,255,0.7); padding: 1rem;">
+                        📭 Nessun task
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+        
+        # Statistiche settimanali
+        st.markdown("---")
+        st.markdown("### 📊 Statistiche Settimanali")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            total_tasks = len(df)
+            st.metric("📋 Task Totali", total_tasks)
+        
+        with col2:
+            giorni_con_task = len([g for g in giorni_ordine if g in task_per_giorno.groups])
+            st.metric("📅 Giorni Attivi", giorni_con_task)
+        
+        with col3:
+            if 'priority_name' in df.columns:
+                alta_priorita = len(df[df['priority_name'].str.contains('alta', case=False, na=False)])
+                st.metric("🔴 Alta Priorità", alta_priorita)
+            else:
+                st.metric("🔴 Alta Priorità", 0)
+        
+        with col4:
+            if 'state_name' in df.columns:
+                completati = len(df[df['state_name'].str.contains('completato', case=False, na=False)])
+                st.metric("✅ Completati", completati)
+            else:
+                st.metric("✅ Completati", 0)
 
 # Test della classe
 if __name__ == "__main__":
