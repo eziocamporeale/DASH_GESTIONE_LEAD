@@ -405,13 +405,19 @@ class LeadTable:
         
         st.markdown("### ⚡ Azioni Rapide")
         
+        # Controlla i permessi dell'utente
+        can_create = self.current_user and self.current_user.get('role_name') != 'Tester'
+        
         col_azione1, col_azione2, col_azione3 = st.columns(3)
         
         with col_azione1:
-            if st.button("📝 Nuovo Lead", help="Crea un nuovo lead"):
-                st.session_state['show_lead_form'] = True
-                st.session_state['lead_form_mode'] = 'create'
-                st.rerun()
+            if can_create:
+                if st.button("📝 Nuovo Lead", help="Crea un nuovo lead"):
+                    st.session_state['show_lead_form'] = True
+                    st.session_state['lead_form_mode'] = 'create'
+                    st.rerun()
+            else:
+                st.button("📝 Nuovo Lead", disabled=True, help="Non disponibile per il ruolo Tester")
         
         with col_azione2:
             st.button("📊 Esporta", disabled=True, help="Nessun dato da esportare")
@@ -425,17 +431,23 @@ class LeadTable:
         
         st.markdown("### ⚡ Azioni Rapide")
         
+        # Controlla i permessi dell'utente
+        can_export = self.current_user and self.current_user.get('role_name') != 'Tester'
+        
         col_azione1, col_azione2, col_azione3 = st.columns(3)
         
         with col_azione1:
-            if st.button("📊 Esporta", help="Esporta i dati filtrati in formato CSV"):
-                csv = df.to_csv(index=False)
-                st.download_button(
-                    label="💾 CSV",
-                    data=csv,
-                    file_name=f"leads_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv"
-                )
+            if can_export:
+                if st.button("📊 Esporta", help="Esporta i dati filtrati in formato CSV"):
+                    csv = df.to_csv(index=False)
+                    st.download_button(
+                        label="💾 CSV",
+                        data=csv,
+                        file_name=f"leads_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv"
+                    )
+            else:
+                st.button("📊 Esporta", disabled=True, help="Non disponibile per il ruolo Tester")
         
         with col_azione2:
             if st.button("🔄 Aggiorna", help="Aggiorna i dati dalla tabella"):
@@ -534,14 +546,26 @@ class LeadTable:
         
         # Azioni
         st.markdown("### ⚡ Azioni")
+        
+        # Controlla i permessi dell'utente
+        can_edit = self.current_user and self.current_user.get('role_name') != 'Tester'
+        can_delete = self.current_user and self.current_user.get('role_name') != 'Tester'
+        
+        if not can_edit and not can_delete:
+            st.info("🔒 **Modalità Tester**: Le azioni di modifica e eliminazione non sono disponibili per proteggere i dati")
+            return
+        
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            if st.button("✏️ Modifica", key=f"edit_{lead_id}"):
-                st.session_state['show_lead_form'] = True
-                st.session_state['lead_form_mode'] = 'edit'
-                st.session_state['edit_lead_data'] = lead
-                st.rerun()
+            if can_edit:
+                if st.button("✏️ Modifica", key=f"edit_{lead_id}"):
+                    st.session_state['show_lead_form'] = True
+                    st.session_state['lead_form_mode'] = 'edit'
+                    st.session_state['edit_lead_data'] = lead
+                    st.rerun()
+            else:
+                st.button("✏️ Modifica", key=f"edit_{lead_id}", disabled=True, help="Non disponibile per il ruolo Tester")
         
         with col2:
             if st.button("✅ Creare Task", key=f"task_{lead_id}"):
@@ -549,24 +573,34 @@ class LeadTable:
                 st.rerun()
         
         with col3:
-            if st.button("🗑️ Elimina", key=f"delete_{lead_id}"):
-                # Gestisce sia formato Supabase (name) che SQLite (first_name + last_name)
-                if 'name' in lead and lead['name']:
-                    lead_name = lead['name']
-                elif 'first_name' in lead and 'last_name' in lead:
-                    lead_name = f"{lead['first_name']} {lead['last_name']}"
-                else:
-                    lead_name = f"Lead ID {lead_id}"
-                
-                if st.confirm(f"Sei sicuro di voler eliminare il lead {lead_name}?"):
-                    if self.db.delete_lead(lead_id):
-                        st.success("✅ Lead eliminato con successo!")
-                        st.rerun()
+            if can_delete:
+                if st.button("🗑️ Elimina", key=f"delete_{lead_id}"):
+                    # Gestisce sia formato Supabase (name) che SQLite (first_name + last_name)
+                    if 'name' in lead and lead['name']:
+                        lead_name = lead['name']
+                    elif 'first_name' in lead and 'last_name' in lead:
+                        lead_name = f"{lead['first_name']} {lead['last_name']}"
                     else:
-                        st.error("❌ Errore durante l'eliminazione")
+                        lead_name = f"Lead ID {lead_id}"
+                    
+                    if st.confirm(f"Sei sicuro di voler eliminare il lead {lead_name}?"):
+                        if self.db.delete_lead(lead_id):
+                            st.success("✅ Lead eliminato con successo!")
+                            st.rerun()
+                        else:
+                            st.error("❌ Errore durante l'eliminazione")
+            else:
+                st.button("🗑️ Elimina", key=f"delete_{lead_id}", disabled=True, help="Non disponibile per il ruolo Tester")
     
     def show_delete_lead_modal(self, df: pd.DataFrame):
         """Mostra il modal per eliminare lead selezionati"""
+        
+        # Controlla i permessi dell'utente
+        can_delete = self.current_user and self.current_user.get('role_name') != 'Tester'
+        
+        if not can_delete:
+            st.info("🔒 **Modalità Tester**: L'eliminazione di lead non è disponibile per proteggere i dati")
+            return
         
         st.markdown("### 🗑️ Elimina Lead")
         st.markdown("Seleziona i lead da eliminare:")
@@ -633,6 +667,13 @@ class LeadTable:
     
     def delete_selected_leads(self, selected_leads: List[Dict]):
         """Elimina i lead selezionati"""
+        
+        # Controlla i permessi dell'utente
+        can_delete = self.current_user and self.current_user.get('role_name') != 'Tester'
+        
+        if not can_delete:
+            st.error("🔒 **Accesso Negato**: Il ruolo Tester non può eliminare lead per proteggere i dati")
+            return
         
         if not selected_leads:
             st.warning("⚠️ Nessun lead selezionato")
