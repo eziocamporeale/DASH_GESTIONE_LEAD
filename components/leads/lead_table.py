@@ -165,7 +165,7 @@ class LeadTable:
         
         # Applica filtraggio per ruolo Tester
         if self.current_user and self.current_user.get('role_name') == 'Tester':
-            leads = self.db.filter_sensitive_data_for_tester(leads)
+            leads = self.db.filter_sensitive_data_for_tester(leads, 'lead')
             st.info("🔒 **Modalità Tester**: I dati sensibili sono stati mascherati per proteggere la privacy dei clienti")
         
         if not leads:
@@ -321,6 +321,10 @@ class LeadTable:
                         break
                 
                 if lead_dettagli is not None:
+                    # Applica filtraggio per ruolo Tester anche ai dettagli
+                    if self.current_user and self.current_user.get('role_name') == 'Tester':
+                        lead_dettagli = self.db.filter_sensitive_data_for_tester([lead_dettagli], 'lead')[0]
+                    
                     # Mostra dettagli completi in due colonne
                     col_det1, col_det2 = st.columns(2)
                     

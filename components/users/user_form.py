@@ -37,6 +37,11 @@ class UserForm:
             mode: "create" per nuovo utente, "edit" per modifica
         """
         
+        # Applica filtraggio per ruolo Tester se si sta modificando un utente
+        if user_data and mode == "edit" and self.current_user and self.current_user.get('role_name') == 'Tester':
+            user_data = self.db.filter_sensitive_data_for_tester([user_data], 'user')[0]
+            st.info("🔒 **Modalità Tester**: I dati sensibili sono stati mascherati per proteggere la privacy")
+        
         # Ottieni dati di lookup
         roles = self.db.get_roles()
         departments = self.db.get_departments()

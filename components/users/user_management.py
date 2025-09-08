@@ -101,6 +101,12 @@ class UserManagement:
         # Ottieni gli utenti
         users = self.db.get_users(filters=filters) if filters else self.db.get_all_users()
         
+        # Applica filtraggio per ruolo Tester
+        current_user = get_current_user()
+        if current_user and current_user.get('role_name') == 'Tester':
+            users = self.db.filter_sensitive_data_for_tester(users, 'user')
+            st.info("🔒 **Modalità Tester**: I dati sensibili degli utenti sono stati mascherati per proteggere la privacy")
+        
         if not users:
             st.info("📭 Nessun utente trovato")
             return
