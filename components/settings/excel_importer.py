@@ -628,16 +628,13 @@ class ExcelImporter:
         """Registra l'attività di importazione"""
         
         try:
-            activity_data = {
-                'user_id': self.current_user['user_id'] if self.current_user else 1,
-                'action': 'Excel Import',
-                'entity_type': 'leads',
-                'entity_id': None,
-                'details': f'Importazione Excel completata: {imported} importati, {updated} aggiornati, {skipped} saltati, {errors} errori',
-                'ip_address': None
-            }
-            
-            self.db.log_activity(activity_data)
+            self.db.log_activity(
+                user_id=self.current_user['user_id'] if self.current_user else 1,
+                action='Excel Import',
+                entity_type='leads',
+                entity_id=None,
+                details=f'Importazione Excel completata: {imported} importati, {updated} aggiornati, {skipped} saltati, {errors} errori'
+            )
             
         except Exception as e:
             st.warning(f"Errore nel logging dell'attività: {str(e)}")

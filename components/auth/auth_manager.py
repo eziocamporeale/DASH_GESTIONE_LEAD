@@ -73,14 +73,13 @@ class AuthManager:
             self.db.update_user_last_login(user['id'])
             
             # Registra l'attività
-            self.db.log_activity({
-                'user_id': user['id'],
-                'action': 'login',
-                'entity_type': 'user',
-                'entity_id': user['id'],
-                'details': f"Login effettuato da {username}",
-                'created_at': datetime.now().isoformat()
-            })
+            self.db.log_activity(
+                user_id=user['id'],
+                action='login',
+                entity_type='user',
+                entity_id=user['id'],
+                details=f"Login effettuato da {username}"
+            )
             
             # Ottieni il nome del ruolo
             role_name = self._get_role_name(user['role_id'])
@@ -115,14 +114,13 @@ class AuthManager:
             current_user = self.get_current_user()
             if current_user:
                 # Registra l'attività
-                self.db.log_activity({
-                    'user_id': current_user['user_id'],
-                    'action': 'logout',
-                    'entity_type': 'user',
-                    'entity_id': current_user['user_id'],
-                    'details': f"Logout effettuato da {current_user['username']}",
-                    'created_at': datetime.now().isoformat()
-                })
+                self.db.log_activity(
+                    user_id=current_user['user_id'],
+                    action='logout',
+                    entity_type='user',
+                    entity_id=current_user['user_id'],
+                    details=f"Logout effettuato da {current_user['username']}"
+                )
                 logger.info(f"Logout effettuato: {current_user['username']}")
             
             # Pulisci la sessione
