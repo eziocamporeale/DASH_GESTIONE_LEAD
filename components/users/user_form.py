@@ -254,13 +254,14 @@ class UserForm:
                         st.success(f"✅ Utente '{first_name} {last_name}' creato con successo!")
                         
                         # Log attività
-                        self.db.log_activity(
-                            user_id=self.current_user['user_id'],
-                            action='create_user',
-                            entity_type='user',
-                            entity_id=user_id,
-                            details=f"Creato nuovo utente: {first_name} {last_name}"
-                        )
+                        if self.current_user and 'user_id' in self.current_user:
+                            self.db.log_activity(
+                                user_id=self.current_user['user_id'],
+                                action='create_user',
+                                entity_type='user',
+                                entity_id=user_id,
+                                details=f"Creato nuovo utente: {first_name} {last_name}"
+                            )
                         
                         return user_id
                     else:
@@ -272,13 +273,14 @@ class UserForm:
                         st.success(f"✅ Utente '{first_name} {last_name}' aggiornato con successo!")
                         
                         # Log attività
-                        self.db.log_activity(
-                            user_id=self.current_user['user_id'],
-                            action='update_user',
-                            entity_type='user',
-                            entity_id=user_data['id'],
-                            details=f"Aggiornato utente: {first_name} {last_name}"
-                        )
+                        if self.current_user and 'user_id' in self.current_user:
+                            self.db.log_activity(
+                                user_id=self.current_user['user_id'],
+                                action='update_user',
+                                entity_type='user',
+                                entity_id=user_data['id'],
+                                details=f"Aggiornato utente: {first_name} {last_name}"
+                            )
                         
                         return user_data['id']
                     else:
