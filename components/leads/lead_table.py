@@ -163,6 +163,11 @@ class LeadTable:
         # Ottieni i lead dal database per la visualizzazione
         leads = self.db.get_leads(filters=filters, limit=page_size)
         
+        # Applica filtraggio per ruolo Tester
+        if self.current_user and self.current_user.get('role_name') == 'Tester':
+            leads = self.db.filter_sensitive_data_for_tester(leads)
+            st.info("🔒 **Modalità Tester**: I dati sensibili sono stati mascherati per proteggere la privacy dei clienti")
+        
         if not leads:
             st.info("📭 Nessun lead trovato con i filtri selezionati")
             # Mostra comunque le azioni rapide anche quando non ci sono lead

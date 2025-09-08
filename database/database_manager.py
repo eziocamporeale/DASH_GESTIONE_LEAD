@@ -351,6 +351,52 @@ class DatabaseManager:
                 return result[0]
             return None
     
+    def filter_sensitive_data_for_tester(self, leads: List[Dict]) -> List[Dict]:
+        """Filtra i dati sensibili per il ruolo Tester"""
+        filtered_leads = []
+        
+        for lead in leads:
+            # Crea una copia del lead
+            filtered_lead = lead.copy()
+            
+            # Maschera i dati sensibili
+            if 'name' in filtered_lead:
+                # Maschera il nome mantenendo solo le iniziali
+                name_parts = filtered_lead['name'].split(' ', 1)
+                if len(name_parts) >= 2:
+                    filtered_lead['name'] = f"{name_parts[0][0]}. {name_parts[1][0]}."
+                else:
+                    filtered_lead['name'] = f"{name_parts[0][0]}."
+            
+            # Maschera email mantenendo solo dominio
+            if 'email' in filtered_lead and filtered_lead['email']:
+                email_parts = filtered_lead['email'].split('@')
+                if len(email_parts) == 2:
+                    filtered_lead['email'] = f"***@{email_parts[1]}"
+                else:
+                    filtered_lead['email'] = "***@***"
+            
+            # Maschera telefono mantenendo solo ultime 3 cifre
+            if 'phone' in filtered_lead and filtered_lead['phone']:
+                phone = str(filtered_lead['phone'])
+                if len(phone) > 3:
+                    filtered_lead['phone'] = f"***{phone[-3:]}"
+                else:
+                    filtered_lead['phone'] = "***"
+            
+            # Maschera azienda mantenendo solo prime 3 lettere
+            if 'company' in filtered_lead and filtered_lead['company']:
+                company = filtered_lead['company']
+                if len(company) > 3:
+                    filtered_lead['company'] = f"{company[:3]}***"
+                else:
+                    filtered_lead['company'] = "***"
+            
+            # Mantieni solo i dati non sensibili
+            filtered_leads.append(filtered_lead)
+        
+        return filtered_leads
+    
     def create_lead(self, lead_data: Dict) -> bool:
         """Crea un nuovo lead"""
         if self.use_supabase:
@@ -1104,6 +1150,42 @@ class DatabaseManager:
                 return []
         else:
             return self.execute_query("SELECT * FROM roles ORDER BY id")
+    
+    def create_role(self, role_data: Dict) -> Optional[int]:
+        """Crea un nuovo ruolo e restituisce l'ID del ruolo creato"""
+        if self.use_supabase:
+            try:
+                # Mappa i dati per la struttura corretta di Supabase
+                supabase_data = {
+                    'name': role_data.get('name', ''),
+                    'description': role_data.get('description', ''),
+                    'permissions': role_data.get('permissions', [])
+                }
+                
+                result = self.supabase.table('roles').insert(supabase_data).execute()
+                if len(result.data) > 0:
+                    # Restituisce l'ID del ruolo creato
+                    return result.data[0]['id']
+                return None
+            except Exception as e:
+                logger.error(f"❌ Errore create_role Supabase: {e}")
+                return None
+        else:
+            query = """
+                INSERT INTO roles (name, description, permissions)
+                VALUES (?, ?, ?)
+            """
+            params = (
+                role_data['name'],
+                role_data['description'],
+                json.dumps(role_data['permissions']) if isinstance(role_data['permissions'], list) else role_data['permissions']
+            )
+            rows_affected = self.execute_update(query, params)
+            if rows_affected > 0:
+                # Per SQLite, ottieni l'ultimo ID inserito
+                cursor = self.conn.execute("SELECT last_insert_rowid()")
+                return cursor.fetchone()[0]
+            return None
     
     def get_departments(self) -> List[Dict]:
         """Ottiene i dipartimenti"""
