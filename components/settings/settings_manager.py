@@ -19,6 +19,7 @@ sys.path.append(str(current_dir))
 from database.database_manager import DatabaseManager
 from components.auth.auth_manager import get_current_user
 from config import CUSTOM_COLORS
+from .excel_importer import render_excel_importer
 
 class SettingsManager:
     """Gestisce le impostazioni del sistema"""
@@ -35,7 +36,7 @@ class SettingsManager:
         st.markdown("Gestisci le configurazioni del sistema")
         
         # Tab per diverse categorie di impostazioni
-        tab1, tab2, tab3, tab4 = st.tabs(["🏢 Azienda", "📧 Notifiche", "🔧 Sistema", "📊 Backup"])
+        tab1, tab2, tab3, tab4, tab5 = st.tabs(["🏢 Azienda", "📧 Notifiche", "🔧 Sistema", "📊 Backup", "📊 Import Excel"])
         
         with tab1:
             self.render_company_settings()
@@ -48,6 +49,9 @@ class SettingsManager:
         
         with tab4:
             self.render_backup_settings()
+        
+        with tab5:
+            self.render_excel_import_settings()
     
     def render_company_settings(self):
         """Renderizza le impostazioni aziendali"""
@@ -538,6 +542,10 @@ class SettingsManager:
             st.success(f"✅ Backup creato con successo: {backup_path}")
         except Exception as e:
             st.error(f"❌ Errore durante il backup: {e}")
+    
+    def render_excel_import_settings(self):
+        """Renderizza le impostazioni di importazione Excel"""
+        render_excel_importer()
 
 def render_settings_wrapper():
     """Wrapper per renderizzare le impostazioni"""

@@ -1771,8 +1771,15 @@ class DatabaseManager:
         """Ottiene un singolo link broker"""
         if self.use_supabase:
             try:
-                result = self.supabase.table('broker_links').select('*').eq('id', link_id).execute()
-                return result.data[0] if result.data else None
+                # Prova prima con broker_links_simple (senza RLS)
+                try:
+                    result = self.supabase.table('broker_links_simple').select('*').eq('id', link_id).execute()
+                    logger.info("✅ Broker link recuperato da broker_links_simple")
+                    return result.data[0] if result.data else None
+                except Exception as e:
+                    logger.warning(f"⚠️ Fallback a broker_links originale: {e}")
+                    result = self.supabase.table('broker_links').select('*').eq('id', link_id).execute()
+                    return result.data[0] if result.data else None
             except Exception as e:
                 logger.error(f"❌ Errore get_broker_link Supabase: {e}")
                 return None
@@ -1795,8 +1802,15 @@ class DatabaseManager:
                     'affiliate_link': affiliate_link,
                     'is_active': is_active
                 }
-                result = self.supabase.table('broker_links').update(data).eq('id', link_id).execute()
-                return len(result.data) > 0
+                # Prova prima con broker_links_simple (senza RLS)
+                try:
+                    result = self.supabase.table('broker_links_simple').update(data).eq('id', link_id).execute()
+                    logger.info("✅ Broker link aggiornato in broker_links_simple")
+                    return len(result.data) > 0
+                except Exception as e:
+                    logger.warning(f"⚠️ Fallback a broker_links originale: {e}")
+                    result = self.supabase.table('broker_links').update(data).eq('id', link_id).execute()
+                    return len(result.data) > 0
             except Exception as e:
                 logger.error(f"❌ Errore update_broker_link Supabase: {e}")
                 return False
@@ -1812,8 +1826,15 @@ class DatabaseManager:
         """Elimina un link broker"""
         if self.use_supabase:
             try:
-                result = self.supabase.table('broker_links').delete().eq('id', link_id).execute()
-                return len(result.data) > 0
+                # Prova prima con broker_links_simple (senza RLS)
+                try:
+                    result = self.supabase.table('broker_links_simple').delete().eq('id', link_id).execute()
+                    logger.info("✅ Broker link eliminato da broker_links_simple")
+                    return len(result.data) > 0
+                except Exception as e:
+                    logger.warning(f"⚠️ Fallback a broker_links originale: {e}")
+                    result = self.supabase.table('broker_links').delete().eq('id', link_id).execute()
+                    return len(result.data) > 0
             except Exception as e:
                 logger.error(f"❌ Errore delete_broker_link Supabase: {e}")
                 return False
@@ -2192,6 +2213,91 @@ class DatabaseManager:
                 'type_stats': {},
                 'category_stats': {}
             }
+    
+    def get_lead_by_email(self, email: str) -> Optional[Dict]:
+        """Ottiene un lead per email"""
+        if self.use_supabase:
+            try:
+                result = self.supabase.table('leads').select('*').eq('email', email).execute()
+                return result.data[0] if result.data else None
+            except Exception as e:
+                logger.error(f"❌ Errore get_lead_by_email Supabase: {e}")
+                return None
+        else:
+            query = "SELECT * FROM leads WHERE email = ?"
+            results = self.execute_query(query, (email,))
+            return results[0] if results else None
+    
+    def create_lead_source(self, source_data: Dict) -> Optional[int]:
+        """Crea una nuova fonte lead"""
+        if self.use_supabase:
+            try:
+                result = self.supabase.table('lead_sources').insert(source_data).execute()
+                return result.data[0]['id'] if result.data else None
+            except Exception as e:
+                logger.error(f"❌ Errore create_lead_source Supabase: {e}")
+                return None
+        else:
+            query = "INSERT INTO lead_sources (name, description, is_active) VALUES (?, ?, ?)"
+            cursor = self.execute_query(query, (
+                source_data['name'],
+                source_data.get('description', ''),
+                source_data.get('is_active', True)
+            ))
+            return cursor.lastrowid if cursor else None
+    
+    def create_lead_category(self, category_data: Dict) -> Optional[int]:
+        """Crea una nuova categoria lead"""
+        if self.use_supabase:
+            try:
+                result = self.supabase.table('lead_categories').insert(category_data).execute()
+                return result.data[0]['id'] if result.data else None
+            except Exception as e:
+                logger.error(f"❌ Errore create_lead_category Supabase: {e}")
+                return None
+        else:
+            query = "INSERT INTO lead_categories (name, color, description) VALUES (?, ?, ?)"
+            cursor = self.execute_query(query, (
+                category_data['name'],
+                category_data.get('color', '#2E86AB'),
+                category_data.get('description', '')
+            ))
+            return cursor.lastrowid if cursor else None
+    
+    def get_lead_priorities(self) -> List[Dict]:
+        """Ottiene le priorità dei lead"""
+        if self.use_supabase:
+            try:
+                result = self.supabase.table('lead_priorities').select('*').execute()
+                return result.data
+            except Exception as e:
+                logger.error(f"❌ Errore get_lead_priorities Supabase: {e}")
+                return []
+        else:
+            return self.execute_query("SELECT * FROM lead_priorities ORDER BY id")
+    
+    def log_activity(self, activity_data: Dict) -> bool:
+        """Registra un'attività nel log"""
+        if self.use_supabase:
+            try:
+                self.supabase.table('activity_log').insert(activity_data).execute()
+                return True
+            except Exception as e:
+                logger.error(f"❌ Errore log_activity Supabase: {e}")
+                return False
+        else:
+            query = """INSERT INTO activity_log 
+                       (user_id, action, entity_type, entity_id, details, ip_address) 
+                       VALUES (?, ?, ?, ?, ?, ?)"""
+            cursor = self.execute_query(query, (
+                activity_data.get('user_id'),
+                activity_data.get('action'),
+                activity_data.get('entity_type'),
+                activity_data.get('entity_id'),
+                activity_data.get('details'),
+                activity_data.get('ip_address')
+            ))
+            return cursor is not None
 
 # Test della classe
 if __name__ == "__main__":
