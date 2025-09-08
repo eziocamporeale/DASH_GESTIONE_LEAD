@@ -267,6 +267,46 @@ class LeadTable:
                     }
                 )
                 
+                # Aggiungi pulsanti di azione sotto la tabella
+                st.markdown("### ⚡ Azioni Rapide sui Lead")
+                
+                # Controlla i permessi dell'utente
+                can_edit = self.current_user and self.current_user.get('role_name') != 'Tester'
+                can_delete = self.current_user and self.current_user.get('role_name') != 'Tester'
+                can_create = self.current_user and self.current_user.get('role_name') != 'Tester'
+                
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    if can_edit:
+                        if st.button("✏️ Modifica Lead Selezionato", use_container_width=True):
+                            st.info("👆 Seleziona un lead nella sezione 'Dettagli Lead' qui sotto per modificarlo")
+                    else:
+                        st.button("✏️ Modifica Lead Selezionato", disabled=True, 
+                                 help="Non disponibile per il ruolo Tester", use_container_width=True)
+                
+                with col2:
+                    if can_create:
+                        if st.button("📝 Nuovo Lead", use_container_width=True):
+                            st.session_state['show_lead_form'] = True
+                            st.session_state['lead_form_mode'] = 'create'
+                            st.rerun()
+                    else:
+                        st.button("📝 Nuovo Lead", disabled=True, 
+                                 help="Non disponibile per il ruolo Tester", use_container_width=True)
+                
+                with col3:
+                    if can_delete:
+                        if st.button("🗑️ Elimina Lead Selezionato", use_container_width=True):
+                            st.info("👆 Seleziona un lead nella sezione 'Dettagli Lead' qui sotto per eliminarlo")
+                    else:
+                        st.button("🗑️ Elimina Lead Selezionato", disabled=True, 
+                                 help="Non disponibile per il ruolo Tester", use_container_width=True)
+                
+                # Messaggio informativo per Tester
+                if not can_edit and not can_delete and not can_create:
+                    st.info("🔒 **Modalità Tester**: Le azioni di modifica, creazione e eliminazione sono disabilitate per proteggere i dati")
+                
                 # Dettagli lead selezionato (come nella Dashboard CPA)
                 self.render_lead_details_section(df)
                 
@@ -544,37 +584,38 @@ class LeadTable:
             st.markdown("### 📝 Note")
             st.text_area("Note del lead", value=lead['notes'], height=100, disabled=True)
         
-        # Azioni
+        # Separatore visivo
+        st.markdown("---")
+        
+        # Azioni - SEMPRE VISIBILI
         st.markdown("### ⚡ Azioni")
         
         # Controlla i permessi dell'utente
         can_edit = self.current_user and self.current_user.get('role_name') != 'Tester'
         can_delete = self.current_user and self.current_user.get('role_name') != 'Tester'
         
-        if not can_edit and not can_delete:
-            st.info("🔒 **Modalità Tester**: Le azioni di modifica e eliminazione non sono disponibili per proteggere i dati")
-            return
-        
+        # Mostra sempre i pulsanti, anche se disabilitati per Tester
         col1, col2, col3 = st.columns(3)
         
         with col1:
             if can_edit:
-                if st.button("✏️ Modifica", key=f"edit_{lead_id}"):
+                if st.button("✏️ Modifica Lead", key=f"edit_{lead_id}", use_container_width=True):
                     st.session_state['show_lead_form'] = True
                     st.session_state['lead_form_mode'] = 'edit'
                     st.session_state['edit_lead_data'] = lead
                     st.rerun()
             else:
-                st.button("✏️ Modifica", key=f"edit_{lead_id}", disabled=True, help="Non disponibile per il ruolo Tester")
+                st.button("✏️ Modifica Lead", key=f"edit_{lead_id}", disabled=True, 
+                         help="Non disponibile per il ruolo Tester", use_container_width=True)
         
         with col2:
-            if st.button("✅ Creare Task", key=f"task_{lead_id}"):
+            if st.button("✅ Creare Task", key=f"task_{lead_id}", use_container_width=True):
                 st.session_state['create_task_for_lead'] = lead_id
                 st.rerun()
         
         with col3:
             if can_delete:
-                if st.button("🗑️ Elimina", key=f"delete_{lead_id}"):
+                if st.button("🗑️ Elimina Lead", key=f"delete_{lead_id}", use_container_width=True):
                     # Gestisce sia formato Supabase (name) che SQLite (first_name + last_name)
                     if 'name' in lead and lead['name']:
                         lead_name = lead['name']
@@ -590,7 +631,12 @@ class LeadTable:
                         else:
                             st.error("❌ Errore durante l'eliminazione")
             else:
-                st.button("🗑️ Elimina", key=f"delete_{lead_id}", disabled=True, help="Non disponibile per il ruolo Tester")
+                st.button("🗑️ Elimina Lead", key=f"delete_{lead_id}", disabled=True, 
+                         help="Non disponibile per il ruolo Tester", use_container_width=True)
+        
+        # Messaggio informativo per Tester
+        if not can_edit and not can_delete:
+            st.info("🔒 **Modalità Tester**: Le azioni di modifica e eliminazione sono disabilitate per proteggere i dati")
     
     def show_delete_lead_modal(self, df: pd.DataFrame):
         """Mostra il modal per eliminare lead selezionati"""
