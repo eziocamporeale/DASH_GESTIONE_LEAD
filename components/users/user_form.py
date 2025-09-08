@@ -253,15 +253,22 @@ class UserForm:
                     if user_id:
                         st.success(f"✅ Utente '{first_name} {last_name}' creato con successo!")
                         
-                        # Log attività
-                        if self.current_user and 'user_id' in self.current_user:
-                            self.db.log_activity(
-                                user_id=self.current_user['user_id'],
-                                action='create_user',
-                                entity_type='user',
-                                entity_id=user_id,
-                                details=f"Creato nuovo utente: {first_name} {last_name}"
-                            )
+                        # Log attività - VERSIONE SICURA v2.0
+                        try:
+                            if (self.current_user and 
+                                isinstance(self.current_user, dict) and 
+                                'user_id' in self.current_user and 
+                                self.current_user['user_id'] is not None):
+                                self.db.log_activity(
+                                    user_id=self.current_user['user_id'],
+                                    action='create_user',
+                                    entity_type='user',
+                                    entity_id=user_id,
+                                    details=f"Creato nuovo utente: {first_name} {last_name}"
+                                )
+                        except Exception as e:
+                            # Log silenzioso dell'errore, non bloccare l'operazione
+                            pass
                         
                         return user_id
                     else:
@@ -272,15 +279,22 @@ class UserForm:
                     if self.db.update_user(user_data['id'], form_data):
                         st.success(f"✅ Utente '{first_name} {last_name}' aggiornato con successo!")
                         
-                        # Log attività
-                        if self.current_user and 'user_id' in self.current_user:
-                            self.db.log_activity(
-                                user_id=self.current_user['user_id'],
-                                action='update_user',
-                                entity_type='user',
-                                entity_id=user_data['id'],
-                                details=f"Aggiornato utente: {first_name} {last_name}"
-                            )
+                        # Log attività - VERSIONE SICURA v2.0
+                        try:
+                            if (self.current_user and 
+                                isinstance(self.current_user, dict) and 
+                                'user_id' in self.current_user and 
+                                self.current_user['user_id'] is not None):
+                                self.db.log_activity(
+                                    user_id=self.current_user['user_id'],
+                                    action='update_user',
+                                    entity_type='user',
+                                    entity_id=user_data['id'],
+                                    details=f"Aggiornato utente: {first_name} {last_name}"
+                                )
+                        except Exception as e:
+                            # Log silenzioso dell'errore, non bloccare l'operazione
+                            pass
                         
                         return user_data['id']
                     else:

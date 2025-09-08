@@ -96,14 +96,22 @@ class PasswordManager:
                 if success:
                     st.success(f"✅ Password aggiornata con successo per {user_data['username']}")
                     
-                    # Registra l'attività
-                    self.db.log_activity(
-                        user_id=self.current_user['user_id'],
-                        action='change_password',
-                        entity_type='user',
-                        entity_id=user_data['id'],
-                        details=f"Password cambiata per utente {user_data['username']}"
-                    )
+                    # Registra l'attività - VERSIONE SICURA v2.0
+                    try:
+                        if (self.current_user and 
+                            isinstance(self.current_user, dict) and 
+                            'user_id' in self.current_user and 
+                            self.current_user['user_id'] is not None):
+                            self.db.log_activity(
+                                user_id=self.current_user['user_id'],
+                                action='change_password',
+                                entity_type='user',
+                                entity_id=user_data['id'],
+                                details=f"Password cambiata per utente {user_data['username']}"
+                            )
+                    except Exception as e:
+                        # Log silenzioso dell'errore, non bloccare l'operazione
+                        pass
                     
                     # Torna alla gestione utenti
                     st.session_state['show_password_form'] = False
@@ -206,14 +214,22 @@ class PasswordManager:
                     st.info(f"📧 **Password temporanea:** {temp_password}")
                     st.info("💡 L'utente dovrà cambiare questa password al prossimo login")
                     
-                    # Registra l'attività
-                    self.db.log_activity(
-                        user_id=self.current_user['user_id'],
-                        action='reset_password',
-                        entity_type='user',
-                        entity_id=user_data['id'],
-                        details=f"Password resettata per utente {user_data['username']}"
-                    )
+                    # Registra l'attività - VERSIONE SICURA v2.0
+                    try:
+                        if (self.current_user and 
+                            isinstance(self.current_user, dict) and 
+                            'user_id' in self.current_user and 
+                            self.current_user['user_id'] is not None):
+                            self.db.log_activity(
+                                user_id=self.current_user['user_id'],
+                                action='reset_password',
+                                entity_type='user',
+                                entity_id=user_data['id'],
+                                details=f"Password resettata per utente {user_data['username']}"
+                            )
+                    except Exception as e:
+                        # Log silenzioso dell'errore, non bloccare l'operazione
+                        pass
                     
                     # Torna alla gestione utenti
                     st.session_state['show_password_form'] = False
