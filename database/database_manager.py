@@ -358,18 +358,18 @@ class DatabaseManager:
                 # Mappa i dati per la struttura corretta di Supabase
                 supabase_data = {
                     'name': f"{lead_data.get('first_name', '')} {lead_data.get('last_name', '')}".strip(),
-                    'email': lead_data.get('email', ''),
-                    'phone': lead_data.get('phone', ''),
-                    'company': lead_data.get('company', ''),
-                    'position': lead_data.get('position', ''),
-                    'budget': lead_data.get('budget', ''),
-                    'expected_close_date': lead_data.get('expected_close_date', ''),
+                    'email': lead_data.get('email') or None,
+                    'phone': lead_data.get('phone') or None,
+                    'company': lead_data.get('company') or None,
+                    'position': lead_data.get('position') or None,
+                    'budget': lead_data.get('budget') if lead_data.get('budget') and str(lead_data.get('budget')).strip() != '' else None,
+                    'expected_close_date': lead_data.get('expected_close_date') if lead_data.get('expected_close_date') and str(lead_data.get('expected_close_date')).strip() != '' else None,
                     'category_id': lead_data.get('lead_category_id'),
                     'state_id': lead_data.get('lead_state_id'),
                     'priority_id': lead_data.get('lead_priority_id'),
                     'source_id': lead_data.get('lead_source_id'),
                     'assigned_to': lead_data.get('assigned_to'),
-                    'notes': lead_data.get('notes', ''),
+                    'notes': lead_data.get('notes') or None,
                     'created_by': lead_data.get('created_by')
                 }
                 
@@ -403,18 +403,18 @@ class DatabaseManager:
                 # Mappa i dati per la struttura corretta di Supabase
                 supabase_data = {
                     'name': f"{lead_data.get('first_name', '')} {lead_data.get('last_name', '')}".strip(),
-                    'email': lead_data.get('email', ''),
-                    'phone': lead_data.get('phone', ''),
-                    'company': lead_data.get('company', ''),
-                    'position': lead_data.get('position', ''),
-                    'budget': lead_data.get('budget', ''),
-                    'expected_close_date': lead_data.get('expected_close_date', ''),
+                    'email': lead_data.get('email') or None,
+                    'phone': lead_data.get('phone') or None,
+                    'company': lead_data.get('company') or None,
+                    'position': lead_data.get('position') or None,
+                    'budget': lead_data.get('budget') if lead_data.get('budget') and str(lead_data.get('budget')).strip() != '' else None,
+                    'expected_close_date': lead_data.get('expected_close_date') if lead_data.get('expected_close_date') and str(lead_data.get('expected_close_date')).strip() != '' else None,
                     'category_id': lead_data.get('lead_category_id'),
                     'state_id': lead_data.get('lead_state_id'),
                     'priority_id': lead_data.get('lead_priority_id'),
                     'source_id': lead_data.get('lead_source_id'),
                     'assigned_to': lead_data.get('assigned_to'),
-                    'notes': lead_data.get('notes', ''),
+                    'notes': lead_data.get('notes') or None,
                     'created_by': lead_data.get('created_by')
                 }
                 

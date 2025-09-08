@@ -54,7 +54,7 @@ class ExcelImporter:
         self.default_values = {
             'state_id': 1,  # Nuovo
             'priority_id': 2,  # Media
-            'created_by': self.current_user['id'] if self.current_user else 1
+            'created_by': self.current_user['user_id'] if self.current_user else 1
         }
     
     def render_import_page(self):
@@ -474,34 +474,53 @@ class ExcelImporter:
                 if excel_col in row.index:
                     value = row[excel_col]
                     
-                    # Gestisce valori NaN
-                    if pd.isna(value):
+                    # Gestisce valori NaN e vuoti
+                    if pd.isna(value) or str(value).strip() == '' or str(value).strip() == 'nan':
                         continue
                     
                     # Converte il valore in base al tipo di campo
                     if db_field in ['source_id', 'category_id', 'state_id', 'priority_id']:
-                        # Per i campi ID, cerca il valore corrispondente
-                        lead_data[db_field] = self.get_id_by_name(db_field, str(value))
+                        # Per i campi ID, controlla se è già un numero
+                        try:
+                            # Se è già un numero, usalo direttamente
+                            id_value = int(value)
+                            if id_value > 0:  # Solo valori positivi
+                                lead_data[db_field] = id_value
+                        except (ValueError, TypeError):
+                            # Se non è un numero, cerca per nome
+                            id_value = self.get_id_by_name(db_field, str(value))
+                            if id_value is not None:
+                                lead_data[db_field] = id_value
                     elif db_field == 'expected_close_date':
                         # Converte la data
                         try:
-                            lead_data[db_field] = pd.to_datetime(value).strftime('%Y-%m-%d')
+                            date_str = pd.to_datetime(value).strftime('%Y-%m-%d')
+                            if date_str and date_str != 'NaT':
+                                lead_data[db_field] = date_str
                         except:
                             pass
                     elif db_field == 'budget':
                         # Converte il budget
                         try:
-                            lead_data[db_field] = float(str(value).replace(',', '.').replace('€', '').replace('$', '').strip())
+                            budget_value = float(str(value).replace(',', '.').replace('€', '').replace('$', '').strip())
+                            if budget_value > 0:  # Solo valori positivi
+                                lead_data[db_field] = budget_value
                         except:
                             pass
                     else:
                         # Campo di testo normale
-                        lead_data[db_field] = str(value).strip()
+                        text_value = str(value).strip()
+                        if text_value and text_value != 'nan':
+                            lead_data[db_field] = text_value
             
             # Aggiunge valori di default
             for field, default_value in self.default_values.items():
                 if field not in lead_data:
                     lead_data[field] = default_value
+            
+            # Validazione finale - verifica campi obbligatori
+            if not lead_data.get('first_name') or not lead_data.get('last_name'):
+                return None
             
             return lead_data
             
@@ -554,15 +573,38 @@ class ExcelImporter:
         """Crea un task automatico per il lead importato"""
         
         try:
+            # Assicurati che i valori siano del tipo corretto
+            priority_id = lead_data.get('priority_id', 2)
+            if isinstance(priority_id, str):
+                # Gestisce casi speciali come "true", "false", etc.
+                if priority_id.lower() in ['true', 'false']:
+                    priority_id = 2  # Default
+                else:
+                    try:
+                        priority_id = int(priority_id)
+                    except (ValueError, TypeError):
+                        priority_id = 2
+            
+            assigned_to = lead_data.get('assigned_to')
+            if assigned_to and isinstance(assigned_to, str):
+                # Gestisce casi speciali come "true", "false", etc.
+                if assigned_to.lower() in ['true', 'false']:
+                    assigned_to = None
+                else:
+                    try:
+                        assigned_to = int(assigned_to)
+                    except (ValueError, TypeError):
+                        assigned_to = None
+            
             task_data = {
                 'title': f'Follow-up per {lead_data.get("first_name", "")} {lead_data.get("last_name", "")}',
                 'description': f'Task automatico creato durante l\'importazione da Excel per il lead {lead_id}',
                 'lead_id': lead_id,
                 'task_type_id': 1,  # Follow-up
                 'state_id': 1,  # Da fare
-                'priority_id': lead_data.get('priority_id', 2),
-                'assigned_to': lead_data.get('assigned_to'),
-                'created_by': self.current_user['id'] if self.current_user else 1,
+                'priority_id': priority_id,
+                'assigned_to': assigned_to,
+                'created_by': self.current_user['user_id'] if self.current_user else 1,
                 'due_date': (datetime.now().replace(day=datetime.now().day + 1)).strftime('%Y-%m-%d')
             }
             
@@ -587,7 +629,7 @@ class ExcelImporter:
         
         try:
             activity_data = {
-                'user_id': self.current_user['id'] if self.current_user else 1,
+                'user_id': self.current_user['user_id'] if self.current_user else 1,
                 'action': 'Excel Import',
                 'entity_type': 'leads',
                 'entity_id': None,
