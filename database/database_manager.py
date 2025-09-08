@@ -643,7 +643,7 @@ class DatabaseManager:
                 leads = {}
                 if lead_ids:
                     lead_result = self.supabase.table('leads').select('id,name').in_('id', lead_ids).execute()
-                    leads = {l['id']: {'name': l.get('name', '')} for l in lead_result.data}
+                    leads = {l['id']: {'id': l.get('id'), 'name': l.get('name', '')} for l in lead_result.data}
                 
                 # Aggiungi i nomi ai task
                 for task in tasks:
@@ -661,6 +661,8 @@ class DatabaseManager:
                     
                     if task.get('lead_id') and task['lead_id'] in leads:
                         lead = leads[task['lead_id']]
+                        # Aggiungi l'ID del lead (numero cliente)
+                        task['lead_client_id'] = lead['id']
                         # Dividi il nome del lead in first_name e last_name
                         lead_name = lead['name']
                         if lead_name:
@@ -671,6 +673,7 @@ class DatabaseManager:
                             task['lead_first_name'] = ''
                             task['lead_last_name'] = ''
                     else:
+                        task['lead_client_id'] = None
                         task['lead_first_name'] = ''
                         task['lead_last_name'] = ''
                 
