@@ -886,15 +886,24 @@ class DatabaseManager:
             results = self.execute_query(query, (user_id,))
             return results[0] if results else None
     
-    def create_user(self, user_data: Dict) -> bool:
-        """Crea un nuovo utente"""
+    def create_user(self, user_data: Dict) -> Optional[int]:
+        """Crea un nuovo utente e restituisce l'ID dell'utente creato"""
         if self.use_supabase:
             try:
+                # Gestisce l'hashing della password se viene fornita in chiaro
+                password_hash = user_data.get('password_hash', '')
+                if not password_hash and 'password' in user_data:
+                    # Se non c'è password_hash ma c'è password, hashala
+                    import bcrypt
+                    password_bytes = user_data['password'].encode('utf-8')
+                    salt = bcrypt.gensalt()
+                    password_hash = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
+                
                 # Mappa i dati per la struttura corretta di Supabase
                 supabase_data = {
                     'username': user_data.get('username', user_data.get('email', '')),  # Usa email come username se non fornito
                     'email': user_data.get('email', ''),
-                    'password_hash': user_data.get('password_hash', ''),  # Usa password_hash invece di password
+                    'password_hash': password_hash,
                     'first_name': user_data.get('first_name', ''),
                     'last_name': user_data.get('last_name', ''),
                     'phone': user_data.get('phone', ''),
@@ -907,11 +916,22 @@ class DatabaseManager:
                 }
                 
                 result = self.supabase.table('users').insert(supabase_data).execute()
-                return len(result.data) > 0
+                if len(result.data) > 0:
+                    # Restituisce l'ID dell'utente creato
+                    return result.data[0]['id']
+                return None
             except Exception as e:
                 logger.error(f"❌ Errore create_user Supabase: {e}")
-                return False
+                return None
         else:
+            # Gestisce l'hashing della password per SQLite
+            password_hash = user_data.get('password_hash', '')
+            if not password_hash and 'password' in user_data:
+                import bcrypt
+                password_bytes = user_data['password'].encode('utf-8')
+                salt = bcrypt.gensalt()
+                password_hash = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
+            
             query = """
                 INSERT INTO users (
                     username, first_name, last_name, email, password_hash,
@@ -920,11 +940,15 @@ class DatabaseManager:
             """
             params = (
                 user_data['username'], user_data['first_name'], user_data['last_name'],
-                user_data['email'], user_data['password_hash'], user_data['role_id'],
+                user_data['email'], password_hash, user_data['role_id'],
                 user_data['department_id'], user_data['is_active'], user_data['created_by']
             )
             rows_affected = self.execute_update(query, params)
-            return rows_affected > 0
+            if rows_affected > 0:
+                # Per SQLite, ottieni l'ultimo ID inserito
+                cursor = self.conn.execute("SELECT last_insert_rowid()")
+                return cursor.fetchone()[0]
+            return None
     
     def update_user(self, user_id: int, user_data: Dict) -> bool:
         """Aggiorna un utente esistente"""

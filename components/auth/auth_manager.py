@@ -246,17 +246,21 @@ class AuthManager:
             # Crea l'utente
             user_id = self.db.create_user(user_data)
             
-            # Registra l'attività
-            self.db.log_activity(
-                user_id=current_user['user_id'],
-                action='create_user',
-                entity_type='user',
-                entity_id=user_id,
-                details=f"Creato nuovo utente: {user_data['username']}"
-            )
-            
-            logger.info(f"Nuovo utente creato: {user_data['username']}")
-            return True
+            if user_id:
+                # Registra l'attività
+                self.db.log_activity(
+                    user_id=current_user['user_id'],
+                    action='create_user',
+                    entity_type='user',
+                    entity_id=user_id,
+                    details=f"Creato nuovo utente: {user_data['username']}"
+                )
+                
+                logger.info(f"Nuovo utente creato: {user_data['username']} (ID: {user_id})")
+                return True
+            else:
+                logger.error(f"Errore nella creazione dell'utente: {user_data['username']}")
+                return False
             
         except Exception as e:
             logger.error(f"Errore nella creazione utente: {e}")
