@@ -333,8 +333,15 @@ class LeadTable:
                 with col_det3:
                     st.markdown("**💰 Informazioni Finanziarie**")
                     budget = lead_dettagli.get('budget')
-                    if budget and budget > 0:
-                        st.write(f"**Budget:** €{budget:,.2f}")
+                    if budget and str(budget).strip() and str(budget).strip() != 'nan':
+                        try:
+                            budget_num = float(budget)
+                            if budget_num > 0:
+                                st.write(f"**Budget:** €{budget_num:,.2f}")
+                            else:
+                                st.write("**Budget:** Non specificato")
+                        except (ValueError, TypeError):
+                            st.write("**Budget:** Non specificato")
                     else:
                         st.write("**Budget:** Non specificato")
                     
