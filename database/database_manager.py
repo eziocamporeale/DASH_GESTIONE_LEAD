@@ -2436,28 +2436,6 @@ class DatabaseManager:
         else:
             return self.execute_query("SELECT * FROM lead_priorities ORDER BY id")
     
-    def log_activity(self, activity_data: Dict) -> bool:
-        """Registra un'attività nel log"""
-        if self.use_supabase:
-            try:
-                self.supabase.table('activity_log').insert(activity_data).execute()
-                return True
-            except Exception as e:
-                logger.error(f"❌ Errore log_activity Supabase: {e}")
-                return False
-        else:
-            query = """INSERT INTO activity_log 
-                       (user_id, action, entity_type, entity_id, details, ip_address) 
-                       VALUES (?, ?, ?, ?, ?, ?)"""
-            cursor = self.execute_query(query, (
-                activity_data.get('user_id'),
-                activity_data.get('action'),
-                activity_data.get('entity_type'),
-                activity_data.get('entity_id'),
-                activity_data.get('details'),
-                activity_data.get('ip_address')
-            ))
-            return cursor is not None
 
 # Test della classe
 if __name__ == "__main__":
