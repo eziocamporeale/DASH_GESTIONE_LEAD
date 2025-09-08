@@ -351,51 +351,105 @@ class DatabaseManager:
                 return result[0]
             return None
     
-    def filter_sensitive_data_for_tester(self, leads: List[Dict]) -> List[Dict]:
+    def filter_sensitive_data_for_tester(self, data: List[Dict], data_type: str = 'lead') -> List[Dict]:
         """Filtra i dati sensibili per il ruolo Tester"""
-        filtered_leads = []
+        filtered_data = []
         
-        for lead in leads:
-            # Crea una copia del lead
-            filtered_lead = lead.copy()
+        for item in data:
+            # Crea una copia dell'item
+            filtered_item = item.copy()
             
-            # Maschera i dati sensibili
-            if 'name' in filtered_lead:
-                # Maschera il nome mantenendo solo le iniziali
-                name_parts = filtered_lead['name'].split(' ', 1)
-                if len(name_parts) >= 2:
-                    filtered_lead['name'] = f"{name_parts[0][0]}. {name_parts[1][0]}."
-                else:
-                    filtered_lead['name'] = f"{name_parts[0][0]}."
+            # Maschera i dati sensibili comuni
+            self._mask_sensitive_fields(filtered_item)
             
-            # Maschera email mantenendo solo dominio
-            if 'email' in filtered_lead and filtered_lead['email']:
-                email_parts = filtered_lead['email'].split('@')
-                if len(email_parts) == 2:
-                    filtered_lead['email'] = f"***@{email_parts[1]}"
-                else:
-                    filtered_lead['email'] = "***@***"
-            
-            # Maschera telefono mantenendo solo ultime 3 cifre
-            if 'phone' in filtered_lead and filtered_lead['phone']:
-                phone = str(filtered_lead['phone'])
-                if len(phone) > 3:
-                    filtered_lead['phone'] = f"***{phone[-3:]}"
-                else:
-                    filtered_lead['phone'] = "***"
-            
-            # Maschera azienda mantenendo solo prime 3 lettere
-            if 'company' in filtered_lead and filtered_lead['company']:
-                company = filtered_lead['company']
-                if len(company) > 3:
-                    filtered_lead['company'] = f"{company[:3]}***"
-                else:
-                    filtered_lead['company'] = "***"
+            # Maschera dati specifici per tipo
+            if data_type == 'lead':
+                self._mask_lead_specific_data(filtered_item)
+            elif data_type == 'user':
+                self._mask_user_specific_data(filtered_item)
+            elif data_type == 'contact':
+                self._mask_contact_specific_data(filtered_item)
             
             # Mantieni solo i dati non sensibili
-            filtered_leads.append(filtered_lead)
+            filtered_data.append(filtered_item)
         
-        return filtered_leads
+        return filtered_data
+    
+    def _mask_sensitive_fields(self, item: Dict):
+        """Maschera i campi sensibili comuni"""
+        # Maschera nomi (first_name, last_name, name)
+        for field in ['first_name', 'last_name', 'name']:
+            if field in item and item[field]:
+                if field == 'name':
+                    # Per il campo name completo
+                    name_parts = str(item[field]).split(' ', 1)
+                    if len(name_parts) >= 2:
+                        item[field] = f"{name_parts[0][0]}. {name_parts[1][0]}."
+                    else:
+                        item[field] = f"{name_parts[0][0]}."
+                else:
+                    # Per first_name e last_name separati
+                    name = str(item[field])
+                    if len(name) > 0:
+                        item[field] = f"{name[0]}."
+        
+        # Maschera email mantenendo solo dominio
+        if 'email' in item and item['email']:
+            email_parts = str(item['email']).split('@')
+            if len(email_parts) == 2:
+                item['email'] = f"***@{email_parts[1]}"
+            else:
+                item['email'] = "***@***"
+        
+        # Maschera telefono mantenendo solo ultime 3 cifre
+        if 'phone' in item and item['phone']:
+            phone = str(item['phone'])
+            if len(phone) > 3:
+                item['phone'] = f"***{phone[-3:]}"
+            else:
+                item['phone'] = "***"
+        
+        # Maschera azienda mantenendo solo prime 3 lettere
+        if 'company' in item and item['company']:
+            company = str(item['company'])
+            if len(company) > 3:
+                item['company'] = f"{company[:3]}***"
+            else:
+                item['company'] = "***"
+    
+    def _mask_lead_specific_data(self, item: Dict):
+        """Maschera dati specifici dei lead"""
+        # Maschera note se contengono informazioni sensibili
+        if 'notes' in item and item['notes']:
+            item['notes'] = "*** Dati sensibili nascosti ***"
+        
+        # Maschera posizione lavorativa
+        if 'position' in item and item['position']:
+            position = str(item['position'])
+            if len(position) > 3:
+                item['position'] = f"{position[:3]}***"
+            else:
+                item['position'] = "***"
+    
+    def _mask_user_specific_data(self, item: Dict):
+        """Maschera dati specifici degli utenti"""
+        # Maschera username mantenendo solo prime 2 lettere
+        if 'username' in item and item['username']:
+            username = str(item['username'])
+            if len(username) > 2:
+                item['username'] = f"{username[:2]}***"
+            else:
+                item['username'] = "***"
+        
+        # Maschera note utente
+        if 'notes' in item and item['notes']:
+            item['notes'] = "*** Dati sensibili nascosti ***"
+    
+    def _mask_contact_specific_data(self, item: Dict):
+        """Maschera dati specifici dei contatti"""
+        # Maschera note contatto
+        if 'notes' in item and item['notes']:
+            item['notes'] = "*** Dati sensibili nascosti ***"
     
     def create_lead(self, lead_data: Dict) -> bool:
         """Crea un nuovo lead"""

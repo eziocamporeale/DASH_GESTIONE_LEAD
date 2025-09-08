@@ -389,6 +389,11 @@ class ReportsManager:
         data = self.db.execute_query(query, params)
         
         if data:
+            # Applica filtraggio per ruolo Tester
+            if self.current_user and self.current_user.get('role_name') == 'Tester':
+                data = self.db.filter_sensitive_data_for_tester(data, 'lead')
+                st.info("🔒 **Modalità Tester**: I dati sensibili nei report sono stati mascherati per proteggere la privacy")
+            
             df = pd.DataFrame(data)
             
             # Formatta le colonne
