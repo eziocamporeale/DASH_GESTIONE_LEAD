@@ -47,199 +47,198 @@ class BulkTaskCreator:
         priorities_options = {pri['name']: pri['id'] for pri in lead_priorities}
         users_options = {f"{user['first_name']} {user['last_name']}": user['id'] for user in users}
         
-        # Form per configurazione task in massa
-        with st.form("bulk_task_form", clear_on_submit=False):
-            
-            # Configurazione del task
-            st.markdown("### ⚙️ Configurazione Task")
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                # Titolo del task
-                task_title = st.text_input(
-                    "Titolo Task *",
-                    value="Chiamata di follow-up",
-                    help="Titolo che verrà applicato a tutti i task"
-                )
-                
-                # Tipo di task
-                task_type = st.selectbox(
-                    "Tipo Task *",
-                    options=list(types_options.keys()),
-                    index=0,
-                    help="Tipo di attività per tutti i task"
-                )
-                
-                # Priorità
-                priority = st.selectbox(
-                    "Priorità *",
-                    options=list(priorities_options.keys()),
-                    index=1,  # Media di default
-                    help="Priorità per tutti i task"
-                )
-            
-            with col2:
-                # Stato iniziale
-                initial_state = st.selectbox(
-                    "Stato Iniziale *",
-                    options=list(states_options.keys()),
-                    index=0,  # Da Fare di default
-                    help="Stato iniziale per tutti i task"
-                )
-                
-                # Assegnazione
-                assigned_user = st.selectbox(
-                    "Assegnato a *",
-                    options=[""] + list(users_options.keys()),
-                    index=0,
-                    help="Utente responsabile per tutti i task"
-                )
-                
-                # Data di scadenza
-                due_date_option = st.selectbox(
-                    "Scadenza",
-                    options=["Nessuna", "Oggi", "Domani", "Tra 3 giorni", "Tra 1 settimana", "Data specifica"],
-                    index=3,  # Tra 3 giorni di default
-                    help="Data di scadenza per tutti i task"
-                )
-            
-            # Descrizione
-            description = st.text_area(
-                "Descrizione",
-                value="Task creato automaticamente per follow-up con il cliente",
-                height=100,
-                help="Descrizione che verrà applicata a tutti i task"
+        # Configurazione del task (fuori dal form)
+        st.markdown("### ⚙️ Configurazione Task")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Titolo del task
+            task_title = st.text_input(
+                "Titolo Task *",
+                value="Chiamata di follow-up",
+                help="Titolo che verrà applicato a tutti i task"
             )
             
-            # Calcola data di scadenza
-            due_date = None
-            if due_date_option != "Nessuna":
-                today = date.today()
-                if due_date_option == "Oggi":
-                    due_date = today
-                elif due_date_option == "Domani":
-                    due_date = today + timedelta(days=1)
-                elif due_date_option == "Tra 3 giorni":
-                    due_date = today + timedelta(days=3)
-                elif due_date_option == "Tra 1 settimana":
-                    due_date = today + timedelta(days=7)
-                elif due_date_option == "Data specifica":
-                    due_date = st.date_input("Seleziona data", value=today + timedelta(days=3))
+            # Tipo di task
+            task_type = st.selectbox(
+                "Tipo Task *",
+                options=list(types_options.keys()),
+                index=0,
+                help="Tipo di attività per tutti i task"
+            )
             
-            st.markdown("---")
+            # Priorità
+            priority = st.selectbox(
+                "Priorità *",
+                options=list(priorities_options.keys()),
+                index=1,  # Media di default
+                help="Priorità per tutti i task"
+            )
+        
+        with col2:
+            # Stato iniziale
+            initial_state = st.selectbox(
+                "Stato Iniziale *",
+                options=list(states_options.keys()),
+                index=0,  # Da Fare di default
+                help="Stato iniziale per tutti i task"
+            )
             
-            # Selezione lead
-            st.markdown("### 👥 Selezione Lead")
+            # Assegnazione
+            assigned_user = st.selectbox(
+                "Assegnato a *",
+                options=[""] + list(users_options.keys()),
+                index=0,
+                help="Utente responsabile per tutti i task"
+            )
             
-            # Filtri per lead
-            col1, col2, col3 = st.columns(3)
+            # Data di scadenza
+            due_date_option = st.selectbox(
+                "Scadenza",
+                options=["Nessuna", "Oggi", "Domani", "Tra 3 giorni", "Tra 1 settimana", "Data specifica"],
+                index=3,  # Tra 3 giorni di default
+                help="Data di scadenza per tutti i task"
+            )
+        
+        # Descrizione
+        description = st.text_area(
+            "Descrizione",
+            value="Task creato automaticamente per follow-up con il cliente",
+            height=100,
+            help="Descrizione che verrà applicata a tutti i task"
+        )
+        
+        # Calcola data di scadenza
+        due_date = None
+        if due_date_option != "Nessuna":
+            today = date.today()
+            if due_date_option == "Oggi":
+                due_date = today
+            elif due_date_option == "Domani":
+                due_date = today + timedelta(days=1)
+            elif due_date_option == "Tra 3 giorni":
+                due_date = today + timedelta(days=3)
+            elif due_date_option == "Tra 1 settimana":
+                due_date = today + timedelta(days=7)
+            elif due_date_option == "Data specifica":
+                due_date = st.date_input("Seleziona data", value=today + timedelta(days=3))
+        
+        st.markdown("---")
+        
+        # Selezione lead
+        st.markdown("### 👥 Selezione Lead")
+        
+        # Filtri per lead
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            # Filtro per stato lead
+            lead_states = self.db.get_lead_states()
+            lead_state_options = ["Tutti"] + [state['name'] for state in lead_states]
+            selected_lead_state = st.selectbox(
+                "Stato Lead",
+                options=lead_state_options,
+                index=0,
+                help="Filtra lead per stato"
+            )
+        
+        with col2:
+            # Filtro per priorità lead
+            lead_priority_options = ["Tutte"] + [priority['name'] for priority in lead_priorities]
+            selected_lead_priority = st.selectbox(
+                "Priorità Lead",
+                options=lead_priority_options,
+                index=0,
+                help="Filtra lead per priorità"
+            )
+        
+        with col3:
+            # Filtro per categoria lead
+            lead_categories = self.db.get_lead_categories()
+            lead_category_options = ["Tutte"] + [cat['name'] for cat in lead_categories]
+            selected_lead_category = st.selectbox(
+                "Categoria Lead",
+                options=lead_category_options,
+                index=0,
+                help="Filtra lead per categoria"
+            )
+        
+        # Applica filtri ai lead
+        filtered_leads = self._filter_leads(leads, selected_lead_state, selected_lead_priority, selected_lead_category, lead_states, lead_priorities, lead_categories)
+        
+        # Mostra statistiche lead filtrati
+        st.info(f"📊 **{len(filtered_leads)} lead** trovati con i filtri applicati")
+        
+        if len(filtered_leads) == 0:
+            st.warning("⚠️ Nessun lead trovato con i filtri selezionati. Modifica i filtri per vedere i lead disponibili.")
+            return None
+        
+        # Selezione lead con checkbox
+        st.markdown("#### Seleziona Lead:")
+        
+        # Opzioni per selezione (fuori dal form)
+        col1, col2, col3 = st.columns([1, 1, 2])
+        
+        with col1:
+            if st.button("✅ Seleziona Tutti", use_container_width=True):
+                st.session_state['selected_leads'] = [lead['id'] for lead in filtered_leads]
+                st.rerun()
+        
+        with col2:
+            if st.button("❌ Deseleziona Tutti", use_container_width=True):
+                st.session_state['selected_leads'] = []
+                st.rerun()
+        
+        # Inizializza selected_leads se non esiste
+        if 'selected_leads' not in st.session_state:
+            st.session_state['selected_leads'] = []
+        
+        # Lista lead con checkbox
+        selected_count = 0
+        for lead in filtered_leads:
+            lead_id = lead['id']
+            is_selected = lead_id in st.session_state['selected_leads']
+            
+            # Formatta nome lead
+            if 'first_name' in lead and 'last_name' in lead:
+                lead_name = f"{lead['first_name']} {lead['last_name']}"
+            elif 'name' in lead:
+                lead_name = lead['name']
+            else:
+                lead_name = "Lead senza nome"
+            
+            company = lead.get('company', 'N/A')
+            phone = lead.get('phone', 'N/A')
+            
+            # Checkbox per selezione
+            col1, col2, col3, col4 = st.columns([1, 3, 2, 2])
             
             with col1:
-                # Filtro per stato lead
-                lead_states = self.db.get_lead_states()
-                lead_state_options = ["Tutti"] + [state['name'] for state in lead_states]
-                selected_lead_state = st.selectbox(
-                    "Stato Lead",
-                    options=lead_state_options,
-                    index=0,
-                    help="Filtra lead per stato"
-                )
+                if st.checkbox("", value=is_selected, key=f"lead_{lead_id}"):
+                    if lead_id not in st.session_state['selected_leads']:
+                        st.session_state['selected_leads'].append(lead_id)
+                    selected_count += 1
+                else:
+                    if lead_id in st.session_state['selected_leads']:
+                        st.session_state['selected_leads'].remove(lead_id)
             
             with col2:
-                # Filtro per priorità lead
-                lead_priority_options = ["Tutte"] + [priority['name'] for priority in lead_priorities]
-                selected_lead_priority = st.selectbox(
-                    "Priorità Lead",
-                    options=lead_priority_options,
-                    index=0,
-                    help="Filtra lead per priorità"
-                )
+                st.write(f"**{lead_name}**")
             
             with col3:
-                # Filtro per categoria lead
-                lead_categories = self.db.get_lead_categories()
-                lead_category_options = ["Tutte"] + [cat['name'] for cat in lead_categories]
-                selected_lead_category = st.selectbox(
-                    "Categoria Lead",
-                    options=lead_category_options,
-                    index=0,
-                    help="Filtra lead per categoria"
-                )
+                st.write(f"🏢 {company}")
             
-            # Applica filtri ai lead
-            filtered_leads = self._filter_leads(leads, selected_lead_state, selected_lead_priority, selected_lead_category, lead_states, lead_priorities, lead_categories)
-            
-            # Mostra statistiche lead filtrati
-            st.info(f"📊 **{len(filtered_leads)} lead** trovati con i filtri applicati")
-            
-            if len(filtered_leads) == 0:
-                st.warning("⚠️ Nessun lead trovato con i filtri selezionati. Modifica i filtri per vedere i lead disponibili.")
-                return None
-            
-            # Selezione lead con checkbox
-            st.markdown("#### Seleziona Lead:")
-            
-            # Opzioni per selezione
-            col1, col2, col3 = st.columns([1, 1, 2])
-            
-            with col1:
-                if st.button("✅ Seleziona Tutti", use_container_width=True):
-                    st.session_state['selected_leads'] = [lead['id'] for lead in filtered_leads]
-                    st.rerun()
-            
-            with col2:
-                if st.button("❌ Deseleziona Tutti", use_container_width=True):
-                    st.session_state['selected_leads'] = []
-                    st.rerun()
-            
-            # Inizializza selected_leads se non esiste
-            if 'selected_leads' not in st.session_state:
-                st.session_state['selected_leads'] = []
-            
-            # Lista lead con checkbox
-            selected_count = 0
-            for lead in filtered_leads:
-                lead_id = lead['id']
-                is_selected = lead_id in st.session_state['selected_leads']
-                
-                # Formatta nome lead
-                if 'first_name' in lead and 'last_name' in lead:
-                    lead_name = f"{lead['first_name']} {lead['last_name']}"
-                elif 'name' in lead:
-                    lead_name = lead['name']
-                else:
-                    lead_name = "Lead senza nome"
-                
-                company = lead.get('company', 'N/A')
-                phone = lead.get('phone', 'N/A')
-                
-                # Checkbox per selezione
-                col1, col2, col3, col4 = st.columns([1, 3, 2, 2])
-                
-                with col1:
-                    if st.checkbox("", value=is_selected, key=f"lead_{lead_id}"):
-                        if lead_id not in st.session_state['selected_leads']:
-                            st.session_state['selected_leads'].append(lead_id)
-                        selected_count += 1
-                    else:
-                        if lead_id in st.session_state['selected_leads']:
-                            st.session_state['selected_leads'].remove(lead_id)
-                
-                with col2:
-                    st.write(f"**{lead_name}**")
-                
-                with col3:
-                    st.write(f"🏢 {company}")
-                
-                with col4:
-                    st.write(f"📞 {phone}")
-            
-            st.markdown(f"### 📋 Riepilogo")
-            st.write(f"**{selected_count} lead selezionati** per la creazione di task")
-            
-            if due_date:
-                st.write(f"**Data scadenza:** {due_date.strftime('%d/%m/%Y')}")
-            
+            with col4:
+                st.write(f"📞 {phone}")
+        
+        st.markdown(f"### 📋 Riepilogo")
+        st.write(f"**{selected_count} lead selezionati** per la creazione di task")
+        
+        if due_date:
+            st.write(f"**Data scadenza:** {due_date.strftime('%d/%m/%Y')}")
+        
+        # Form solo per i pulsanti di azione
+        with st.form("bulk_task_actions", clear_on_submit=False):
             # Pulsanti di azione
             col1, col2, col3 = st.columns([1, 1, 1])
             
