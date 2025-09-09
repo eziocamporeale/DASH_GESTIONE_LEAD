@@ -638,12 +638,12 @@ class DatabaseManager:
                     user_result = self.supabase.table('users').select('id,first_name,last_name').in_('id', user_ids).execute()
                     users = {u['id']: {'first_name': u.get('first_name', ''), 'last_name': u.get('last_name', '')} for u in user_result.data}
                 
-                # Ottieni tutti i lead associati
+                # Ottieni tutti i lead associati (incluso il numero di telefono)
                 lead_ids = list(set([task.get('lead_id') for task in tasks if task.get('lead_id')]))
                 leads = {}
                 if lead_ids:
-                    lead_result = self.supabase.table('leads').select('id,name').in_('id', lead_ids).execute()
-                    leads = {l['id']: {'id': l.get('id'), 'name': l.get('name', '')} for l in lead_result.data}
+                    lead_result = self.supabase.table('leads').select('id,name,phone').in_('id', lead_ids).execute()
+                    leads = {l['id']: {'id': l.get('id'), 'name': l.get('name', ''), 'phone': l.get('phone', '')} for l in lead_result.data}
                 
                 # Aggiungi i nomi ai task
                 for task in tasks:
@@ -663,6 +663,8 @@ class DatabaseManager:
                         lead = leads[task['lead_id']]
                         # Aggiungi l'ID del lead (numero cliente)
                         task['lead_client_id'] = lead['id']
+                        # Aggiungi il numero di telefono del lead
+                        task['lead_phone'] = lead['phone']
                         # Dividi il nome del lead in first_name e last_name
                         lead_name = lead['name']
                         if lead_name:
@@ -674,6 +676,7 @@ class DatabaseManager:
                             task['lead_last_name'] = ''
                     else:
                         task['lead_client_id'] = None
+                        task['lead_phone'] = ''
                         task['lead_first_name'] = ''
                         task['lead_last_name'] = ''
                 
@@ -686,11 +689,16 @@ class DatabaseManager:
                 SELECT t.*, 
                        tt.name as task_type_name,
                        ts.name as state_name,
-                       u.first_name || ' ' || u.last_name as assigned_to_name
+                       u.first_name || ' ' || u.last_name as assigned_to_name,
+                       l.first_name as lead_first_name,
+                       l.last_name as lead_last_name,
+                       l.phone as lead_phone,
+                       l.id as lead_client_id
                 FROM tasks t
                 LEFT JOIN task_types tt ON t.task_type_id = tt.id
                 LEFT JOIN task_states ts ON t.state_id = ts.id
                 LEFT JOIN users u ON t.assigned_to = u.id
+                LEFT JOIN leads l ON t.lead_id = l.id
             """
             
             where_conditions = []
