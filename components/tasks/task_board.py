@@ -101,16 +101,21 @@ class TaskBoard:
                 st.rerun()
         
         with col2:
+            if st.button("🚀 Task in Massa", use_container_width=True, key="bulk_task_board"):
+                st.session_state['show_bulk_task_creator'] = True
+                st.rerun()
+        
+        with col3:
             if st.button("📊 Export Excel", use_container_width=True, key="export_board"):
                 # TODO: Implementare export Excel
                 st.info("📊 Funzionalità export in sviluppo")
         
-        with col3:
+        with col4:
             if st.button("📈 Analytics", use_container_width=True, key="analytics_board"):
                 # TODO: Implementare analytics
                 st.info("📈 Funzionalità analytics in sviluppo")
         
-        with col4:
+        with col5:
             if st.button("🗑️ Elimina Multipli", use_container_width=True, key="delete_multiple_board"):
                 # TODO: Implementare eliminazione multipla
                 st.info("🗑️ Funzionalità eliminazione multipla in sviluppo")
@@ -767,9 +772,9 @@ def render_task_board_wrapper():
     """Wrapper per renderizzare la board task"""
     board = TaskBoard()
     
-    # Controlla se mostrare il form o la board
+    # Controlla se mostrare il form, bulk creator o la board
     if st.session_state.get('show_task_form', False):
-        # Mostra il form
+        # Mostra il form singolo
         task_data = st.session_state.get('edit_task_data', None)
         mode = st.session_state.get('task_form_mode', 'create')
         lead_id = st.session_state.get('create_task_for_lead', None)
@@ -799,6 +804,16 @@ def render_task_board_wrapper():
             if 'create_task_for_lead' in st.session_state:
                 del st.session_state['create_task_for_lead']
             st.rerun()
+    
+    elif st.session_state.get('show_bulk_task_creator', False):
+        # Mostra il bulk task creator
+        if st.button("← Torna alla Board Task"):
+            st.session_state['show_bulk_task_creator'] = False
+            st.rerun()
+        
+        # Importa e renderizza il bulk creator
+        from components.tasks.bulk_task_creator import render_bulk_task_creator_wrapper
+        render_bulk_task_creator_wrapper()
     
     else:
         # Mostra la board
