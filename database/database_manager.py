@@ -662,17 +662,17 @@ class DatabaseManager:
                     type_result = self.supabase.table('task_types').select('id,name').in_('id', type_ids).execute()
                     types = {t['id']: t['name'] for t in type_result.data}
                 
-                # Ottieni tutte le priorità (se la tabella esiste)
+                # Ottieni tutte le priorità dalla tabella lead_priorities
                 priority_ids = list(set([task.get('priority_id') for task in tasks if task.get('priority_id')]))
                 priorities = {}
                 if priority_ids:
                     try:
-                        priority_result = self.supabase.table('task_priorities').select('id,name').in_('id', priority_ids).execute()
+                        priority_result = self.supabase.table('lead_priorities').select('id,name').in_('id', priority_ids).execute()
                         priorities = {p['id']: p['name'] for p in priority_result.data}
                     except Exception as e:
-                        logger.warning(f"⚠️ Tabella task_priorities non trovata: {e}")
+                        logger.warning(f"⚠️ Tabella lead_priorities non trovata: {e}")
                         # Usa valori di default per le priorità
-                        priorities = {1: 'Bassa', 2: 'Media', 3: 'Alta'}
+                        priorities = {1: 'Alta', 2: 'Media', 3: 'Bassa'}
                 
                 # Ottieni tutti gli utenti assegnati
                 user_ids = list(set([task.get('assigned_to') for task in tasks if task.get('assigned_to')]))
