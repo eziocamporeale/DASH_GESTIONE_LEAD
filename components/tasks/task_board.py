@@ -462,47 +462,94 @@ class TaskBoard:
     def render_task_filters(self) -> Dict:
         """Renderizza i filtri per i task"""
         
-        st.markdown("### 🔍 Filtri Task")
-        
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            # Filtro stato
-            states = self.db.get_task_states()
-            state_options = ["Tutti"] + [state['name'] for state in states]
-            selected_state = st.selectbox(
-                "Stato",
-                options=state_options,
-                index=0
-            )
-        
-        with col2:
-            # Filtro tipo
-            types = self.db.get_task_types()
-            type_options = ["Tutti"] + [task_type['name'] for task_type in types]
-            selected_type = st.selectbox(
-                "Tipo",
-                options=type_options,
-                index=0
-            )
-        
-        with col3:
-            # Filtro assegnazione
-            users = self.db.get_all_users()
-            user_options = ["Tutti"] + [f"{user['first_name']} {user['last_name']}" for user in users]
-            selected_user = st.selectbox(
-                "Assegnato a",
-                options=user_options,
-                index=0
-            )
-        
-        with col4:
-            # Filtro scadenza
-            due_filter = st.selectbox(
-                "Scadenza",
-                options=["Tutti", "Scaduti", "Oggi", "Questa settimana", "Questo mese"],
-                index=0
-            )
+        # Sezione filtri collassabile
+        with st.expander("🔍 Filtri Task", expanded=st.session_state.get('task_filters_expanded', True)):
+            # Salva lo stato dell'expander
+            st.session_state['task_filters_expanded'] = True
+            
+            # Prima riga di filtri
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                # Filtro stato
+                states = self.db.get_task_states()
+                state_options = ["Tutti"] + [state['name'] for state in states]
+                selected_state = st.selectbox(
+                    "📈 Stato",
+                    options=state_options,
+                    index=0,
+                    help="Filtra per stato del task"
+                )
+            
+            with col2:
+                # Filtro tipo
+                types = self.db.get_task_types()
+                type_options = ["Tutti"] + [task_type['name'] for task_type in types]
+                selected_type = st.selectbox(
+                    "🏷️ Tipo",
+                    options=type_options,
+                    index=0,
+                    help="Filtra per tipo di task"
+                )
+            
+            with col3:
+                # Filtro priorità
+                priorities = self.db.get_lead_priorities()
+                priority_options = ["Tutte"] + [priority['name'] for priority in priorities]
+                selected_priority = st.selectbox(
+                    "⚡ Priorità",
+                    options=priority_options,
+                    index=0,
+                    help="Filtra per priorità del task"
+                )
+            
+            with col4:
+                # Filtro assegnazione
+                users = self.db.get_all_users()
+                user_options = ["Tutti"] + [f"{user['first_name']} {user['last_name']}" for user in users]
+                selected_user = st.selectbox(
+                    "👥 Assegnato a",
+                    options=user_options,
+                    index=0,
+                    help="Filtra per utente assegnato"
+                )
+            
+            # Seconda riga di filtri
+            col5, col6, col7, col8 = st.columns(4)
+            
+            with col5:
+                # Filtro lead associato
+                leads = self.db.get_all_leads()
+                lead_options = ["Tutti"] + [f"{lead.get('name', 'Lead senza nome')} (ID: {lead['id']})" for lead in leads]
+                selected_lead = st.selectbox(
+                    "👤 Lead",
+                    options=lead_options,
+                    index=0,
+                    help="Filtra per lead associato"
+                )
+            
+            with col6:
+                # Filtro scadenza
+                due_filter = st.selectbox(
+                    "📅 Scadenza",
+                    options=["Tutti", "Scaduti", "Oggi", "Questa settimana", "Questo mese", "Prossimi 7 giorni"],
+                    index=0,
+                    help="Filtra per data di scadenza"
+                )
+            
+            with col7:
+                # Filtro data creazione
+                created_filter = st.selectbox(
+                    "📆 Creato",
+                    options=["Tutti", "Oggi", "Ieri", "Ultima settimana", "Ultimo mese"],
+                    index=0,
+                    help="Filtra per data di creazione"
+                )
+            
+            with col8:
+                # Pulsante per resettare i filtri
+                if st.button("🔄 Reset Filtri", use_container_width=True):
+                    st.rerun()
         
         # Preparazione filtri
         filters = {}
@@ -517,10 +564,30 @@ class TaskBoard:
             if type_id:
                 filters['task_type_id'] = type_id
         
+        if selected_priority != "Tutte":
+            priority_id = next((priority['id'] for priority in priorities if priority['name'] == selected_priority), None)
+            if priority_id:
+                filters['priority_id'] = priority_id
+        
         if selected_user != "Tutti":
             user_id = next((user['id'] for user in users if f"{user['first_name']} {user['last_name']}" == selected_user), None)
             if user_id:
                 filters['assigned_to'] = user_id
+        
+        if selected_lead != "Tutti":
+            # Estrai l'ID del lead dalla stringa formattata
+            try:
+                lead_id = int(selected_lead.split("ID: ")[1].split(")")[0])
+                filters['lead_id'] = lead_id
+            except (IndexError, ValueError):
+                pass
+        
+        # Filtri per date (da implementare nella query del database)
+        if due_filter != "Tutti":
+            filters['due_filter'] = due_filter
+        
+        if created_filter != "Tutti":
+            filters['created_filter'] = created_filter
         
         return filters
     
