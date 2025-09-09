@@ -224,10 +224,11 @@ class TaskBoard:
         """Renderizza una card di task"""
         
         # Determina il colore della priorità
+        # Nota: La mappatura nel database è ID 1=Bassa, ID 2=Media, ID 3=Alta
         priority_colors = {
-            'Alta': '#DC3545',
-            'Media': '#FFC107', 
-            'Bassa': '#28A745'
+            'Alta': '#DC3545',  # Rosso per alta priorità
+            'Media': '#FFC107', # Giallo per media priorità
+            'Bassa': '#28A745'  # Verde per bassa priorità
         }
         priority_name = task.get('priority_name', 'N/A')
         priority_color = priority_colors.get(priority_name, '#6C757D')
