@@ -250,7 +250,9 @@ class TaskBoard:
         if task.get('lead_first_name') and task.get('lead_last_name'):
             lead_name = f"{task['lead_first_name']} {task['lead_last_name']}"
             client_id = task.get('lead_client_id', 'N/A')
-            lead_info = f'<div style="margin: 6px 0; font-size: 14px;">👥 <strong>{lead_name[:15]}{"..." if len(lead_name) > 15 else ""}</strong></div><div style="margin: 6px 0; font-size: 12px; color: #666;">🔢 <strong>Cliente #{client_id}</strong></div>'
+            lead_phone = task.get('lead_phone', '')
+            phone_display = f'<div style="margin: 6px 0; font-size: 12px; color: #666;">📞 <strong>{lead_phone}</strong></div>' if lead_phone else ''
+            lead_info = f'<div style="margin: 6px 0; font-size: 14px;">👥 <strong>{lead_name[:15]}{"..." if len(lead_name) > 15 else ""}</strong></div><div style="margin: 6px 0; font-size: 12px; color: #666;">🔢 <strong>Cliente #{client_id}</strong></div>{phone_display}'
         
         # Descrizione del task
         description_info = ""
