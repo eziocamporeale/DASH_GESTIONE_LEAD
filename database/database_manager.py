@@ -594,10 +594,53 @@ class DatabaseManager:
                         query = query.eq('state_id', filters['state_id'])
                     if filters.get('task_type_id'):
                         query = query.eq('task_type_id', filters['task_type_id'])
+                    if filters.get('priority_id'):
+                        query = query.eq('priority_id', filters['priority_id'])
                     if filters.get('assigned_to'):
                         query = query.eq('assigned_to', filters['assigned_to'])
                     if filters.get('lead_id'):
                         query = query.eq('lead_id', filters['lead_id'])
+                    
+                    # Filtri per date
+                    if filters.get('due_filter'):
+                        due_filter = filters['due_filter']
+                        today = datetime.now().date()
+                        
+                        if due_filter == "Scaduti":
+                            query = query.lt('due_date', today.isoformat())
+                        elif due_filter == "Oggi":
+                            query = query.eq('due_date', today.isoformat())
+                        elif due_filter == "Questa settimana":
+                            from datetime import timedelta
+                            week_end = today + timedelta(days=7)
+                            query = query.gte('due_date', today.isoformat()).lte('due_date', week_end.isoformat())
+                        elif due_filter == "Questo mese":
+                            from datetime import timedelta
+                            month_end = today + timedelta(days=30)
+                            query = query.gte('due_date', today.isoformat()).lte('due_date', month_end.isoformat())
+                        elif due_filter == "Prossimi 7 giorni":
+                            from datetime import timedelta
+                            week_end = today + timedelta(days=7)
+                            query = query.gte('due_date', today.isoformat()).lte('due_date', week_end.isoformat())
+                    
+                    if filters.get('created_filter'):
+                        created_filter = filters['created_filter']
+                        today = datetime.now().date()
+                        
+                        if created_filter == "Oggi":
+                            query = query.gte('created_at', today.isoformat())
+                        elif created_filter == "Ieri":
+                            from datetime import timedelta
+                            yesterday = today - timedelta(days=1)
+                            query = query.gte('created_at', yesterday.isoformat()).lt('created_at', today.isoformat())
+                        elif created_filter == "Ultima settimana":
+                            from datetime import timedelta
+                            week_ago = today - timedelta(days=7)
+                            query = query.gte('created_at', week_ago.isoformat())
+                        elif created_filter == "Ultimo mese":
+                            from datetime import timedelta
+                            month_ago = today - timedelta(days=30)
+                            query = query.gte('created_at', month_ago.isoformat())
                 
                 # Ordina e limita
                 result = query.order('due_date', desc=True).range(offset, offset + limit - 1).execute()
@@ -713,6 +756,10 @@ class DatabaseManager:
                     where_conditions.append("t.task_type_id = ?")
                     params.append(filters['task_type_id'])
                 
+                if filters.get('priority_id'):
+                    where_conditions.append("t.priority_id = ?")
+                    params.append(filters['priority_id'])
+                
                 if filters.get('assigned_to'):
                     where_conditions.append("t.assigned_to = ?")
                     params.append(filters['assigned_to'])
@@ -720,6 +767,56 @@ class DatabaseManager:
                 if filters.get('lead_id'):
                     where_conditions.append("t.lead_id = ?")
                     params.append(filters['lead_id'])
+                
+                # Filtri per date
+                if filters.get('due_filter'):
+                    due_filter = filters['due_filter']
+                    today = datetime.now().date()
+                    
+                    if due_filter == "Scaduti":
+                        where_conditions.append("t.due_date < ?")
+                        params.append(today.isoformat())
+                    elif due_filter == "Oggi":
+                        where_conditions.append("t.due_date = ?")
+                        params.append(today.isoformat())
+                    elif due_filter == "Questa settimana":
+                        from datetime import timedelta
+                        week_end = today + timedelta(days=7)
+                        where_conditions.append("t.due_date >= ? AND t.due_date <= ?")
+                        params.extend([today.isoformat(), week_end.isoformat()])
+                    elif due_filter == "Questo mese":
+                        from datetime import timedelta
+                        month_end = today + timedelta(days=30)
+                        where_conditions.append("t.due_date >= ? AND t.due_date <= ?")
+                        params.extend([today.isoformat(), month_end.isoformat()])
+                    elif due_filter == "Prossimi 7 giorni":
+                        from datetime import timedelta
+                        week_end = today + timedelta(days=7)
+                        where_conditions.append("t.due_date >= ? AND t.due_date <= ?")
+                        params.extend([today.isoformat(), week_end.isoformat()])
+                
+                if filters.get('created_filter'):
+                    created_filter = filters['created_filter']
+                    today = datetime.now().date()
+                    
+                    if created_filter == "Oggi":
+                        where_conditions.append("DATE(t.created_at) = ?")
+                        params.append(today.isoformat())
+                    elif created_filter == "Ieri":
+                        from datetime import timedelta
+                        yesterday = today - timedelta(days=1)
+                        where_conditions.append("DATE(t.created_at) = ?")
+                        params.append(yesterday.isoformat())
+                    elif created_filter == "Ultima settimana":
+                        from datetime import timedelta
+                        week_ago = today - timedelta(days=7)
+                        where_conditions.append("DATE(t.created_at) >= ?")
+                        params.append(week_ago.isoformat())
+                    elif created_filter == "Ultimo mese":
+                        from datetime import timedelta
+                        month_ago = today - timedelta(days=30)
+                        where_conditions.append("DATE(t.created_at) >= ?")
+                        params.append(month_ago.isoformat())
             
             if where_conditions:
                 base_query += " WHERE " + " AND ".join(where_conditions)
