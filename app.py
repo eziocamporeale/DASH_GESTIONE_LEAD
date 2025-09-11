@@ -34,6 +34,7 @@ from components.settings.settings_manager import render_settings_wrapper
 from components.broker_links.broker_links_manager import BrokerLinksManager
 from components.scripts.scripts_manager import ScriptsManager
 from components.ai_assistant.ai_ui_components import render_ai_assistant
+from components.storage.storage_ui import render_storage_wrapper
 
 # Configurazione pagina
 st.set_page_config(
@@ -594,6 +595,8 @@ def main():
         render_broker_links_page()
     elif page == "📝 Script":
         render_scripts_page()
+    elif page == "📁 Storage":
+        render_storage_wrapper()
     elif page == "📊 Report":
         render_reports_page()
     elif page == "⚙️ Settings":

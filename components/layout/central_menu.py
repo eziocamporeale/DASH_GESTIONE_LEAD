@@ -88,6 +88,7 @@ def render_central_menu(current_page: str = "📊 Dashboard") -> str:
         ("📞 Contatti", "📞 Contatti"),
         ("🔗 Broker", "🔗 Broker"),
         ("📝 Script", "📝 Script"),
+        ("📁 Storage", "📁 Storage"),
         ("📊 Report", "📊 Report"),
         ("⚙️ Settings", "⚙️ Settings")
     ]
