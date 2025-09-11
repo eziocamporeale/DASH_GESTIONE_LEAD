@@ -48,12 +48,14 @@ class StorageManager:
             'Archivi': ['zip', 'rar', '7z', 'tar', 'gz'],
             'Fogli di Calcolo': ['xls', 'xlsx', 'csv', 'ods'],
             'Presentazioni': ['ppt', 'pptx', 'odp'],
+            'Gold Supreme EA': ['ex4', 'ex5', 'mq4', 'mq5'],
+            'Backtest EA': ['ex4', 'ex5', 'mq4', 'mq5'],
             'Altro': []
         }
     
     def get_file_category(self, filename: str) -> str:
         """
-        Determina la categoria di un file basandosi sull'estensione
+        Determina la categoria di un file basandosi sull'estensione e sul nome
         
         Args:
             filename: Nome del file
@@ -62,9 +64,21 @@ class StorageManager:
             str: Categoria del file
         """
         extension = filename.split('.')[-1].lower() if '.' in filename else ''
+        filename_lower = filename.lower()
         
+        # Categorie speciali per file MQL4/MQL5
+        if extension in ['ex4', 'ex5', 'mq4', 'mq5']:
+            if 'gold' in filename_lower and 'supreme' in filename_lower:
+                return 'Gold Supreme EA'
+            elif 'backtest' in filename_lower or 'test' in filename_lower:
+                return 'Backtest EA'
+            else:
+                # Default per file MQL generici
+                return 'Gold Supreme EA'
+        
+        # Categorizzazione normale per altri file
         for category, extensions in self.categories.items():
-            if extension in extensions:
+            if extension in extensions and category not in ['Gold Supreme EA', 'Backtest EA']:
                 return category
         
         return 'Altro'
