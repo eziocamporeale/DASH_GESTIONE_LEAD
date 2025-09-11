@@ -153,6 +153,9 @@ class StorageManager:
             unique_filename = self.generate_unique_filename(uploaded_file.name)
             file_path = self.storage_dir / unique_filename
             
+            # Percorso relativo per il database (compatibile con deployment)
+            relative_path = f"storage/uploads/{unique_filename}"
+            
             # Salva il file
             with open(file_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
@@ -172,7 +175,7 @@ class StorageManager:
             file_data = {
                 'filename': unique_filename,
                 'original_filename': uploaded_file.name,
-                'file_path': str(file_path),
+                'file_path': relative_path,  # Usa percorso relativo
                 'file_size': file_size,
                 'file_type': file_type,
                 'category': category,
@@ -257,9 +260,17 @@ class StorageManager:
             file_info = result.data[0]
             file_path = file_info['file_path']
             
+            # Gestisci percorsi relativi e assoluti
+            if not os.path.isabs(file_path):
+                # Percorso relativo - costruisci il percorso completo
+                file_path = Path(current_dir) / file_path
+            else:
+                # Percorso assoluto - usa così com'è
+                file_path = Path(file_path)
+            
             # Verifica che il file esista
-            if not os.path.exists(file_path):
-                return False, "File non trovato nel filesystem", b""
+            if not file_path.exists():
+                return False, f"File non trovato nel filesystem: {file_path}", b""
             
             # Leggi il contenuto del file
             with open(file_path, 'rb') as f:
