@@ -55,12 +55,21 @@ class LeadForm:
         lead_sources = self.db.get_lead_sources()
         users = self.db.get_all_users()
         
+        # Ottieni gruppi di lead accessibili dall'utente corrente
+        if self.current_user and self.current_user.get('lead_groups'):
+            user_groups = self.current_user['lead_groups']
+            # Filtra solo i gruppi che l'utente può gestire o a cui ha accesso
+            accessible_groups = [group for group in user_groups if group.get('can_manage', False) or self.current_user.get('role_name') == 'Admin']
+        else:
+            accessible_groups = []
+        
         # Preparazione dati per selectbox
         states_options = {state['name']: state['id'] for state in lead_states}
         categories_options = {cat['name']: cat['id'] for cat in lead_categories}
         priorities_options = {pri['name']: pri['id'] for pri in lead_priorities}
         sources_options = {src['name']: src['id'] for src in lead_sources}
         users_options = {f"{user['first_name']} {user['last_name']}": user['id'] for user in users}
+        groups_options = {group.get('group_name', group.get('name', 'Unknown')): group.get('group_id', group.get('id')) for group in accessible_groups}
         
         # Titolo del form
         title = "📝 Nuovo Lead" if mode == "create" else "✏️ Modifica Lead"
@@ -181,6 +190,32 @@ class LeadForm:
                     help="Utente responsabile del lead"
                 )
                 
+                # Gruppo di Lead
+                if accessible_groups:
+                    # Trova il gruppo corrente del lead
+                    current_group = None
+                    if lead_data and lead_data.get('group_id'):
+                        for group in accessible_groups:
+                            if group.get('group_id', group.get('id')) == lead_data['group_id']:
+                                current_group = group.get('group_name', group.get('name', 'Unknown'))
+                                break
+                    
+                    group_name = st.selectbox(
+                        "👥 Gruppo",
+                        options=[""] + list(groups_options.keys()),
+                        index=0 if not current_group else list(groups_options.keys()).index(current_group) + 1,
+                        help="Gruppo di venditori per il lead"
+                    )
+                else:
+                    group_name = ""
+                    st.selectbox(
+                        "👥 Gruppo",
+                        options=["Nessun gruppo disponibile"],
+                        index=0,
+                        help="Non hai accesso a nessun gruppo di lead",
+                        disabled=True
+                    )
+                
                 # Budget
                 budget = st.number_input(
                     "Budget (€)",
@@ -249,6 +284,7 @@ class LeadForm:
                     'lead_category_id': categories_options[category_name],
                     'lead_source_id': sources_options[source_name],
                     'assigned_to': users_options[assigned_user] if assigned_user else None,
+                    'group_id': groups_options[group_name] if group_name and accessible_groups else None,
                     'budget': budget if budget > 0 else None,
                     'expected_close_date': close_date.isoformat() if close_date else None,
                     'notes': notes.strip() if notes else None,

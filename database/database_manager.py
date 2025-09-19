@@ -189,6 +189,8 @@ class DatabaseManager:
                         query = query.eq('category_id', filters['category_id'])
                     if filters.get('assigned_to'):
                         query = query.eq('assigned_to', filters['assigned_to'])
+                    if filters.get('group_id'):
+                        query = query.eq('group_id', filters['group_id'])
                     if filters.get('search'):
                         search_term = filters['search']
                         # Ricerca in più campi
@@ -263,6 +265,10 @@ class DatabaseManager:
             except Exception as e:
                 logger.error(f"❌ Errore get_leads Supabase: {e}")
                 return []
+        else:
+            # SQLite non supportato per produzione - solo per backup
+            logger.warning("⚠️ SQLite non supportato per produzione. Usa Supabase.")
+            return []
     
     def get_lead(self, lead_id: int) -> Optional[Dict]:
         """Ottiene un singolo lead per ID"""
@@ -469,6 +475,7 @@ class DatabaseManager:
                     'priority_id': lead_data.get('lead_priority_id'),
                     'source_id': lead_data.get('lead_source_id'),
                     'assigned_to': lead_data.get('assigned_to'),
+                    'group_id': lead_data.get('group_id'),
                     'notes': lead_data.get('notes') or None,
                     'created_by': lead_data.get('created_by')
                 }
@@ -500,23 +507,44 @@ class DatabaseManager:
         """Aggiorna un lead esistente"""
         if self.use_supabase:
             try:
-                # Mappa i dati per la struttura corretta di Supabase
-                supabase_data = {
-                    'name': f"{lead_data.get('first_name', '')} {lead_data.get('last_name', '')}".strip(),
-                    'email': lead_data.get('email') or None,
-                    'phone': lead_data.get('phone') or None,
-                    'company': lead_data.get('company') or None,
-                    'position': lead_data.get('position') or None,
-                    'budget': lead_data.get('budget') if lead_data.get('budget') and str(lead_data.get('budget')).strip() != '' else None,
-                    'expected_close_date': lead_data.get('expected_close_date') if lead_data.get('expected_close_date') and str(lead_data.get('expected_close_date')).strip() != '' else None,
-                    'category_id': lead_data.get('lead_category_id'),
-                    'state_id': lead_data.get('lead_state_id'),
-                    'priority_id': lead_data.get('lead_priority_id'),
-                    'source_id': lead_data.get('lead_source_id'),
-                    'assigned_to': lead_data.get('assigned_to'),
-                    'notes': lead_data.get('notes') or None,
-                    'created_by': lead_data.get('created_by')
-                }
+                # Costruisci solo i campi che sono stati forniti
+                supabase_data = {}
+                
+                # Gestisci il nome solo se first_name o last_name sono forniti
+                if 'first_name' in lead_data or 'last_name' in lead_data:
+                    supabase_data['name'] = f"{lead_data.get('first_name', '')} {lead_data.get('last_name', '')}".strip()
+                elif 'name' in lead_data:
+                    supabase_data['name'] = lead_data['name']
+                
+                # Aggiorna solo i campi forniti
+                if 'email' in lead_data:
+                    supabase_data['email'] = lead_data['email'] or None
+                if 'phone' in lead_data:
+                    supabase_data['phone'] = lead_data['phone'] or None
+                if 'company' in lead_data:
+                    supabase_data['company'] = lead_data['company'] or None
+                if 'position' in lead_data:
+                    supabase_data['position'] = lead_data['position'] or None
+                if 'budget' in lead_data:
+                    supabase_data['budget'] = lead_data['budget'] if lead_data['budget'] and str(lead_data['budget']).strip() != '' else None
+                if 'expected_close_date' in lead_data:
+                    supabase_data['expected_close_date'] = lead_data['expected_close_date'] if lead_data['expected_close_date'] and str(lead_data['expected_close_date']).strip() != '' else None
+                if 'lead_category_id' in lead_data:
+                    supabase_data['category_id'] = lead_data['lead_category_id']
+                if 'lead_state_id' in lead_data:
+                    supabase_data['state_id'] = lead_data['lead_state_id']
+                if 'lead_priority_id' in lead_data:
+                    supabase_data['priority_id'] = lead_data['lead_priority_id']
+                if 'lead_source_id' in lead_data:
+                    supabase_data['source_id'] = lead_data['lead_source_id']
+                if 'assigned_to' in lead_data:
+                    supabase_data['assigned_to'] = lead_data['assigned_to']
+                if 'group_id' in lead_data:
+                    supabase_data['group_id'] = lead_data['group_id']
+                if 'notes' in lead_data:
+                    supabase_data['notes'] = lead_data['notes'] or None
+                if 'created_by' in lead_data:
+                    supabase_data['created_by'] = lead_data['created_by']
                 
                 result = self.supabase.table('leads').update(supabase_data).eq('id', lead_id).execute()
                 return len(result.data) > 0
@@ -1162,11 +1190,20 @@ class DatabaseManager:
         """Aggiorna un utente esistente"""
         if self.use_supabase:
             try:
+                # Gestisce l'hashing della password se viene fornita in chiaro
+                password_hash = user_data.get('password_hash', '')
+                if not password_hash and 'password' in user_data:
+                    # Se non c'è password_hash ma c'è password, hashala
+                    import bcrypt
+                    password_bytes = user_data['password'].encode('utf-8')
+                    salt = bcrypt.gensalt()
+                    password_hash = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
+                
                 # Mappa i dati per la struttura corretta di Supabase
                 supabase_data = {
                     'username': user_data.get('username', user_data.get('email', '')),
                     'email': user_data.get('email', ''),
-                    'password_hash': user_data.get('password_hash', ''),  # Usa password_hash invece di password
+                    'password_hash': password_hash,
                     'first_name': user_data.get('first_name', ''),
                     'last_name': user_data.get('last_name', ''),
                     'phone': user_data.get('phone', ''),
@@ -1183,17 +1220,40 @@ class DatabaseManager:
                 logger.error(f"❌ Errore update_user Supabase: {e}")
                 return False
         else:
-            query = """
-                UPDATE users SET
-                    username = ?, first_name = ?, last_name = ?, email = ?,
-                    role_id = ?, department_id = ?, is_active = ?, updated_at = DATETIME('now')
-                WHERE id = ?
-            """
-            params = (
-                user_data['username'], user_data['first_name'], user_data['last_name'],
-                user_data['email'], user_data['role_id'], user_data['department_id'],
-                user_data['is_active'], user_id
-            )
+            # Gestisce l'hashing della password per SQLite
+            password_hash = user_data.get('password_hash', '')
+            if not password_hash and 'password' in user_data:
+                import bcrypt
+                password_bytes = user_data['password'].encode('utf-8')
+                salt = bcrypt.gensalt()
+                password_hash = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
+            
+            # Costruisce la query dinamicamente per includere password_hash solo se necessario
+            if password_hash:
+                query = """
+                    UPDATE users SET
+                        username = ?, first_name = ?, last_name = ?, email = ?,
+                        password_hash = ?, role_id = ?, department_id = ?, is_active = ?, updated_at = DATETIME('now')
+                    WHERE id = ?
+                """
+                params = (
+                    user_data['username'], user_data['first_name'], user_data['last_name'],
+                    user_data['email'], password_hash, user_data['role_id'], user_data['department_id'],
+                    user_data['is_active'], user_id
+                )
+            else:
+                query = """
+                    UPDATE users SET
+                        username = ?, first_name = ?, last_name = ?, email = ?,
+                        role_id = ?, department_id = ?, is_active = ?, updated_at = DATETIME('now')
+                    WHERE id = ?
+                """
+                params = (
+                    user_data['username'], user_data['first_name'], user_data['last_name'],
+                    user_data['email'], user_data['role_id'], user_data['department_id'],
+                    user_data['is_active'], user_id
+                )
+            
             rows_affected = self.execute_update(query, params)
             return rows_affected > 0
     
@@ -2514,6 +2574,341 @@ class DatabaseManager:
             ))
             return cursor.lastrowid if cursor else None
     
+    # ==================== METODI GESTIONE GRUPPI LEAD ====================
+    
+    def get_lead_groups(self) -> List[Dict]:
+        """Ottiene tutti i gruppi di lead attivi"""
+        if self.use_supabase:
+            try:
+                result = self.supabase.table('lead_groups').select('*').eq('is_active', True).order('name').execute()
+                return result.data
+            except Exception as e:
+                logger.error(f"❌ Errore get_lead_groups Supabase: {e}")
+                return []
+        else:
+            logger.warning("⚠️ SQLite non supportato per produzione. Usa Supabase.")
+            return []
+    
+    def get_lead_group_by_id(self, group_id: int) -> Optional[Dict]:
+        """Ottiene un gruppo di lead per ID"""
+        if self.use_supabase:
+            try:
+                result = self.supabase.table('lead_groups').select('*').eq('id', group_id).execute()
+                return result.data[0] if result.data else None
+            except Exception as e:
+                logger.error(f"❌ Errore get_lead_group_by_id Supabase: {e}")
+                return None
+        else:
+            logger.warning("⚠️ SQLite non supportato per produzione. Usa Supabase.")
+            return None
+    
+    def create_lead_group(self, group_data: Dict) -> Optional[int]:
+        """Crea un nuovo gruppo di lead"""
+        if self.use_supabase:
+            try:
+                result = self.supabase.table('lead_groups').insert(group_data).execute()
+                return result.data[0]['id'] if result.data else None
+            except Exception as e:
+                logger.error(f"❌ Errore create_lead_group Supabase: {e}")
+                return None
+        else:
+            logger.warning("⚠️ SQLite non supportato per produzione. Usa Supabase.")
+            return None
+    
+    def update_lead_group(self, group_id: int, group_data: Dict) -> bool:
+        """Aggiorna un gruppo di lead"""
+        if self.use_supabase:
+            try:
+                result = self.supabase.table('lead_groups').update(group_data).eq('id', group_id).execute()
+                return len(result.data) > 0
+            except Exception as e:
+                logger.error(f"❌ Errore update_lead_group Supabase: {e}")
+                return False
+        else:
+            logger.warning("⚠️ SQLite non supportato per produzione. Usa Supabase.")
+            return False
+    
+    def delete_lead_group(self, group_id: int) -> bool:
+        """Elimina un gruppo di lead (soft delete)"""
+        if self.use_supabase:
+            try:
+                result = self.supabase.table('lead_groups').update({'is_active': False}).eq('id', group_id).execute()
+                return len(result.data) > 0
+            except Exception as e:
+                logger.error(f"❌ Errore delete_lead_group Supabase: {e}")
+                return False
+        else:
+            logger.warning("⚠️ SQLite non supportato per produzione. Usa Supabase.")
+            return False
+    
+    def get_user_lead_groups(self, user_id: int) -> List[Dict]:
+        """Ottiene i gruppi di lead di un utente"""
+        if self.use_supabase:
+            try:
+                result = self.supabase.table('user_lead_groups').select('*, lead_groups(*)').eq('user_id', user_id).execute()
+                return result.data
+            except Exception as e:
+                logger.error(f"❌ Errore get_user_lead_groups Supabase: {e}")
+                return []
+        else:
+            logger.warning("⚠️ SQLite non supportato per produzione. Usa Supabase.")
+            return []
+    
+    def assign_user_to_group(self, user_id: int, group_id: int, can_manage: bool = False) -> bool:
+        """Assegna un utente a un gruppo di lead"""
+        if self.use_supabase:
+            try:
+                assignment_data = {
+                    'user_id': user_id,
+                    'group_id': group_id,
+                    'can_manage': can_manage
+                }
+                result = self.supabase.table('user_lead_groups').insert(assignment_data).execute()
+                return len(result.data) > 0
+            except Exception as e:
+                logger.error(f"❌ Errore assign_user_to_group Supabase: {e}")
+                return False
+        else:
+            logger.warning("⚠️ SQLite non supportato per produzione. Usa Supabase.")
+            return False
+    
+    def remove_user_from_group(self, user_id: int, group_id: int) -> bool:
+        """Rimuove un utente da un gruppo di lead"""
+        if self.use_supabase:
+            try:
+                result = self.supabase.table('user_lead_groups').delete().eq('user_id', user_id).eq('group_id', group_id).execute()
+                return True
+            except Exception as e:
+                logger.error(f"❌ Errore remove_user_from_group Supabase: {e}")
+                return False
+        else:
+            logger.warning("⚠️ SQLite non supportato per produzione. Usa Supabase.")
+            return False
+    
+    def get_leads_by_group(self, group_id: int, user_id: Optional[int] = None) -> List[Dict]:
+        """Ottiene i lead di un gruppo specifico"""
+        if self.use_supabase:
+            try:
+                query = self.supabase.table('leads').select('*').eq('group_id', group_id)
+                if user_id:
+                    # Verifica che l'utente abbia accesso al gruppo
+                    user_groups = self.get_user_lead_groups(user_id)
+                    user_group_ids = [ug['group_id'] for ug in user_groups]
+                    if group_id not in user_group_ids:
+                        return []
+                result = query.execute()
+                return result.data
+            except Exception as e:
+                logger.error(f"❌ Errore get_leads_by_group Supabase: {e}")
+                return []
+        else:
+            logger.warning("⚠️ SQLite non supportato per produzione. Usa Supabase.")
+            return []
+    
+    def get_leads_for_user_groups(self, user_id: int) -> List[Dict]:
+        """Ottiene tutti i lead accessibili da un utente in base ai suoi gruppi"""
+        if self.use_supabase:
+            try:
+                # Ottieni i gruppi dell'utente
+                user_groups = self.get_user_lead_groups(user_id)
+                if not user_groups:
+                    return []
+                
+                group_ids = [ug['group_id'] for ug in user_groups]
+                
+                # Ottieni i lead di questi gruppi
+                result = self.supabase.table('leads').select('*').in_('group_id', group_ids).execute()
+                return result.data
+            except Exception as e:
+                logger.error(f"❌ Errore get_leads_for_user_groups Supabase: {e}")
+                return []
+        else:
+            logger.warning("⚠️ SQLite non supportato per produzione. Usa Supabase.")
+            return []
+    
+    def get_tasks_for_user_groups(self, user_id: int, filters: Dict = None, limit: int = 50, offset: int = 0) -> List[Dict]:
+        """Ottiene tutti i task accessibili da un utente in base ai suoi gruppi di lead"""
+        if self.use_supabase:
+            try:
+                # Ottieni i gruppi dell'utente
+                user_groups = self.get_user_lead_groups(user_id)
+                if not user_groups:
+                    return []
+                
+                group_ids = [ug['group_id'] for ug in user_groups]
+                
+                # Ottieni i lead di questi gruppi
+                leads_result = self.supabase.table('leads').select('id').in_('group_id', group_ids).execute()
+                lead_ids = [lead['id'] for lead in leads_result.data]
+                
+                if not lead_ids:
+                    return []
+                
+                # Ottieni i task collegati a questi lead
+                query = self.supabase.table('tasks').select('*').in_('lead_id', lead_ids)
+                
+                # Applica filtri se forniti
+                if filters:
+                    if filters.get('state_id'):
+                        query = query.eq('state_id', filters['state_id'])
+                    if filters.get('task_type_id'):
+                        query = query.eq('task_type_id', filters['task_type_id'])
+                    if filters.get('priority_id'):
+                        query = query.eq('priority_id', filters['priority_id'])
+                    if filters.get('assigned_to'):
+                        query = query.eq('assigned_to', filters['assigned_to'])
+                    
+                    # Filtri per date
+                    if filters.get('due_filter'):
+                        due_filter = filters['due_filter']
+                        today = datetime.now().date()
+                        
+                        if due_filter == "Scaduti":
+                            query = query.lt('due_date', today.isoformat())
+                        elif due_filter == "Oggi":
+                            query = query.eq('due_date', today.isoformat())
+                        elif due_filter == "Questa settimana":
+                            from datetime import timedelta
+                            week_end = today + timedelta(days=7)
+                            query = query.gte('due_date', today.isoformat()).lte('due_date', week_end.isoformat())
+                        elif due_filter == "Questo mese":
+                            from datetime import timedelta
+                            month_end = today + timedelta(days=30)
+                            query = query.gte('due_date', today.isoformat()).lte('due_date', month_end.isoformat())
+                        elif due_filter == "Prossimi 7 giorni":
+                            from datetime import timedelta
+                            week_end = today + timedelta(days=7)
+                            query = query.gte('due_date', today.isoformat()).lte('due_date', week_end.isoformat())
+                    
+                    if filters.get('created_filter'):
+                        created_filter = filters['created_filter']
+                        today = datetime.now().date()
+                        
+                        if created_filter == "Oggi":
+                            query = query.gte('created_at', today.isoformat())
+                        elif created_filter == "Ieri":
+                            from datetime import timedelta
+                            yesterday = today - timedelta(days=1)
+                            query = query.gte('created_at', yesterday.isoformat()).lt('created_at', today.isoformat())
+                        elif created_filter == "Ultima settimana":
+                            from datetime import timedelta
+                            week_ago = today - timedelta(days=7)
+                            query = query.gte('created_at', week_ago.isoformat())
+                        elif created_filter == "Ultimo mese":
+                            from datetime import timedelta
+                            month_ago = today - timedelta(days=30)
+                            query = query.gte('created_at', month_ago.isoformat())
+                
+                # Ordina e limita
+                result = query.order('due_date', desc=True).range(offset, offset + limit - 1).execute()
+                tasks = result.data
+                
+                # Aggiungi i dati di lookup per i task
+                if tasks:
+                    # Ottieni tutti gli stati dei task
+                    state_ids = list(set([task.get('state_id') for task in tasks if task.get('state_id')]))
+                    states = {}
+                    if state_ids:
+                        state_result = self.supabase.table('task_states').select('id,name').in_('id', state_ids).execute()
+                        states = {state['id']: state['name'] for state in state_result.data}
+                    
+                    # Ottieni tutti i tipi di task
+                    type_ids = list(set([task.get('task_type_id') for task in tasks if task.get('task_type_id')]))
+                    types = {}
+                    if type_ids:
+                        type_result = self.supabase.table('task_types').select('id,name').in_('id', type_ids).execute()
+                        types = {t['id']: t['name'] for t in type_result.data}
+                    
+                    # Ottieni tutte le priorità
+                    priority_ids = list(set([task.get('priority_id') for task in tasks if task.get('priority_id')]))
+                    priorities = {}
+                    if priority_ids:
+                        priority_result = self.supabase.table('lead_priorities').select('id,name').in_('id', priority_ids).execute()
+                        priorities = {p['id']: p['name'] for p in priority_result.data}
+                    
+                    # Ottieni tutti gli utenti assegnati
+                    user_ids = list(set([task.get('assigned_to') for task in tasks if task.get('assigned_to')]))
+                    users = {}
+                    if user_ids:
+                        user_result = self.supabase.table('users').select('id,first_name,last_name').in_('id', user_ids).execute()
+                        users = {u['id']: {'first_name': u.get('first_name', ''), 'last_name': u.get('last_name', '')} for u in user_result.data}
+                    
+                    # Ottieni tutti i lead collegati
+                    lead_ids = list(set([task.get('lead_id') for task in tasks if task.get('lead_id')]))
+                    leads = {}
+                    if lead_ids:
+                        lead_result = self.supabase.table('leads').select('id,name,phone').in_('id', lead_ids).execute()
+                        leads = {l['id']: {'name': l.get('name', ''), 'phone': l.get('phone', '')} for l in lead_result.data}
+                    
+                    # Aggiungi i nomi ai task
+                    for task in tasks:
+                        task['state_name'] = states.get(task.get('state_id'), 'N/A')
+                        task['type_name'] = types.get(task.get('task_type_id'), 'N/A')
+                        task['priority_name'] = priorities.get(task.get('priority_id'), 'N/A')
+                        
+                        if task.get('assigned_to') and task['assigned_to'] in users:
+                            user = users[task['assigned_to']]
+                            task['assigned_first_name'] = user['first_name']
+                            task['assigned_last_name'] = user['last_name']
+                        else:
+                            task['assigned_first_name'] = ''
+                            task['assigned_last_name'] = ''
+                        
+                        if task.get('lead_id') and task['lead_id'] in leads:
+                            lead = leads[task['lead_id']]
+                            task['lead_name'] = lead['name']
+                            task['lead_phone'] = lead['phone']
+                        else:
+                            task['lead_name'] = ''
+                            task['lead_phone'] = ''
+                
+                return tasks
+            except Exception as e:
+                logger.error(f"❌ Errore get_tasks_for_user_groups Supabase: {e}")
+                return []
+        else:
+            logger.warning("⚠️ SQLite non supportato per produzione. Usa Supabase.")
+            return []
+    
+    def assign_lead_to_group(self, lead_id: int, group_id: int) -> bool:
+        """Assegna un lead a un gruppo"""
+        if self.use_supabase:
+            try:
+                result = self.supabase.table('leads').update({'group_id': group_id}).eq('id', lead_id).execute()
+                return len(result.data) > 0
+            except Exception as e:
+                logger.error(f"❌ Errore assign_lead_to_group Supabase: {e}")
+                return False
+        else:
+            logger.warning("⚠️ SQLite non supportato per produzione. Usa Supabase.")
+            return False
+    
+    def get_group_statistics(self, group_id: int) -> Dict:
+        """Ottiene statistiche per un gruppo di lead"""
+        if self.use_supabase:
+            try:
+                # Conta lead per stato nel gruppo
+                leads_result = self.supabase.table('leads').select('state_id').eq('group_id', group_id).execute()
+                leads = leads_result.data
+                
+                # Conta utenti nel gruppo
+                users_result = self.supabase.table('user_lead_groups').select('user_id').eq('group_id', group_id).execute()
+                users = users_result.data
+                
+                return {
+                    'total_leads': len(leads),
+                    'total_users': len(users),
+                    'leads_by_state': {},
+                    'leads_by_category': {},
+                    'leads_by_priority': {}
+                }
+            except Exception as e:
+                logger.error(f"❌ Errore get_group_statistics Supabase: {e}")
+                return {}
+        else:
+            logger.warning("⚠️ SQLite non supportato per produzione. Usa Supabase.")
+            return {}
+
     def create_lead_category(self, category_data: Dict) -> Optional[int]:
         """Crea una nuova categoria lead"""
         if self.use_supabase:

@@ -39,8 +39,13 @@ class TaskBoard:
             key="task_view_mode"
         )
         
-        # Ottieni tutti i task
-        tasks = self.db.get_tasks(filters=filters, limit=100)
+        # Per utenti non-Admin, limita ai task dei loro gruppi
+        if self.current_user and self.current_user.get('role_name') != 'Admin':
+            # Ottieni solo i task dei gruppi dell'utente
+            tasks = self.db.get_tasks_for_user_groups(self.current_user['user_id'], filters=filters, limit=100)
+        else:
+            # Admin vede tutti i task
+            tasks = self.db.get_tasks(filters=filters, limit=100)
         
         if view_mode == "📅 Vista Settimanale":
             self.render_weekly_view(tasks)
