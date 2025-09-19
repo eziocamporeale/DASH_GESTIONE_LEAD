@@ -440,57 +440,164 @@ class LeadGroupManagement:
             # Form per assegnare lead al gruppo
             st.markdown("### ➕ Assegna Lead al Gruppo")
             
-            with st.form("assign_lead_to_group_form"):
-                # Filtra lead non assegnati o assegnati ad altri gruppi
-                available_leads = [lead for lead in leads if lead.get('group_id') != selected_group_id]
+            # Filtra lead non assegnati o assegnati ad altri gruppi
+            available_leads = [lead for lead in leads if lead.get('group_id') != selected_group_id]
+            
+            if not available_leads:
+                st.info("📭 Tutti i lead sono già assegnati a questo gruppo.")
+            else:
+                st.info(f"📊 **{len(available_leads)}** lead disponibili per l'assegnazione")
                 
-                if not available_leads:
-                    st.info("📭 Tutti i lead sono già assegnati a questo gruppo.")
-                else:
-                    # Selezione lead
-                    lead_options = {f"{lead.get('name', 'N/A')} - {lead.get('company', 'N/A')}": lead['id'] for lead in available_leads}
+                # Tabs per diverse modalità di assegnazione
+                tab_manual, tab_random = st.tabs(["🎯 Selezione Manuale", "🎲 Assegnazione Randomica"])
+                
+                with tab_manual:
+                    st.markdown("#### 🎯 Selezione Manuale")
                     
-                    selected_lead_name = st.selectbox(
-                        "Seleziona Lead",
-                        options=list(lead_options.keys()),
-                        help="Scegli il lead da assegnare al gruppo"
-                    )
-                    
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        assign_button = st.form_submit_button(
-                            "📝 Assegna Lead",
-                            use_container_width=True
-                        )
-                    
-                    with col2:
-                        cancel_button = st.form_submit_button(
-                            "❌ Annulla",
-                            use_container_width=True
-                        )
-                    
-                    if assign_button:
-                        selected_lead_id = lead_options[selected_lead_name]
+                    with st.form("assign_lead_to_group_form"):
+                        # Selezione multipla lead
+                        lead_options = {f"{lead.get('name', 'N/A')} - {lead.get('company', 'N/A')}": lead['id'] for lead in available_leads}
                         
-                        # Aggiorna il lead con il group_id
-                        success = self.db.update_lead(selected_lead_id, {'group_id': selected_group_id})
+                        selected_leads_names = st.multiselect(
+                            "Seleziona Lead (Multipla)",
+                            options=list(lead_options.keys()),
+                            help="Scegli uno o più lead da assegnare al gruppo",
+                            placeholder="Seleziona i lead da assegnare..."
+                        )
                         
-                        if success:
-                            st.success(f"✅ Lead assegnato al gruppo '{selected_group['name']}'!")
-                            
-                            # Log attività
-                            self.db.log_activity(
-                                user_id=self.current_user['user_id'],
-                                action='assign',
-                                entity_type='lead',
-                                entity_id=selected_lead_id,
-                                details=f"Assegnato lead al gruppo '{selected_group['name']}'"
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            assign_button = st.form_submit_button(
+                                f"📝 Assegna {len(selected_leads_names)} Lead",
+                                use_container_width=True,
+                                disabled=len(selected_leads_names) == 0
                             )
+                        
+                        with col2:
+                            cancel_button = st.form_submit_button(
+                                "❌ Annulla",
+                                use_container_width=True
+                            )
+                        
+                        if assign_button and selected_leads_names:
+                            success_count = 0
+                            failed_count = 0
                             
-                            st.rerun()
-                        else:
-                            st.error("❌ Errore nell'assegnazione del lead. Riprova.")
+                            for lead_name in selected_leads_names:
+                                lead_id = lead_options[lead_name]
+                                
+                                # Aggiorna il lead con il group_id
+                                success = self.db.update_lead(lead_id, {'group_id': selected_group_id})
+                                
+                                if success:
+                                    success_count += 1
+                                    
+                                    # Log attività
+                                    self.db.log_activity(
+                                        user_id=self.current_user['user_id'],
+                                        action='assign',
+                                        entity_type='lead',
+                                        entity_id=lead_id,
+                                        details=f"Assegnato lead al gruppo '{selected_group['name']}'"
+                                    )
+                                else:
+                                    failed_count += 1
+                            
+                            if success_count > 0:
+                                st.success(f"✅ **{success_count}** lead assegnati al gruppo '{selected_group['name']}'!")
+                                if failed_count > 0:
+                                    st.warning(f"⚠️ **{failed_count}** lead non assegnati (errore)")
+                                st.rerun()
+                            else:
+                                st.error("❌ Errore nell'assegnazione dei lead. Riprova.")
+                
+                with tab_random:
+                    st.markdown("#### 🎲 Assegnazione Randomica")
+                    
+                    with st.form("random_assign_lead_to_group_form"):
+                        # Input per numero di lead da assegnare
+                        max_leads = len(available_leads)
+                        
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            num_leads = st.number_input(
+                                "Numero Lead da Assegnare",
+                                min_value=1,
+                                max_value=max_leads,
+                                value=min(10, max_leads),
+                                help=f"Massimo {max_leads} lead disponibili"
+                            )
+                        
+                        with col2:
+                            st.metric("Lead Disponibili", max_leads)
+                        
+                        # Anteprima dei lead che verranno assegnati
+                        if num_leads > 0:
+                            import random
+                            random.seed()  # Usa seed casuale
+                            random_leads = random.sample(available_leads, min(num_leads, len(available_leads)))
+                            
+                            st.markdown("**📋 Anteprima Lead da Assegnare:**")
+                            preview_data = []
+                            for lead in random_leads:
+                                preview_data.append({
+                                    'Nome': lead.get('name', 'N/A'),
+                                    'Azienda': lead.get('company', 'N/A'),
+                                    'Email': lead.get('email', 'N/A')
+                                })
+                            
+                            if preview_data:
+                                df_preview = pd.DataFrame(preview_data)
+                                st.dataframe(df_preview, use_container_width=True, hide_index=True)
+                        
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            random_assign_button = st.form_submit_button(
+                                f"🎲 Assegna {num_leads} Lead Randomici",
+                                use_container_width=True,
+                                disabled=num_leads == 0
+                            )
+                        
+                        with col2:
+                            cancel_button = st.form_submit_button(
+                                "❌ Annulla",
+                                use_container_width=True
+                            )
+                        
+                        if random_assign_button and num_leads > 0:
+                            success_count = 0
+                            failed_count = 0
+                            
+                            for lead in random_leads:
+                                lead_id = lead['id']
+                                
+                                # Aggiorna il lead con il group_id
+                                success = self.db.update_lead(lead_id, {'group_id': selected_group_id})
+                                
+                                if success:
+                                    success_count += 1
+                                    
+                                    # Log attività
+                                    self.db.log_activity(
+                                        user_id=self.current_user['user_id'],
+                                        action='assign',
+                                        entity_type='lead',
+                                        entity_id=lead_id,
+                                        details=f"Assegnato lead randomicamente al gruppo '{selected_group['name']}'"
+                                    )
+                                else:
+                                    failed_count += 1
+                            
+                            if success_count > 0:
+                                st.success(f"🎲 **{success_count}** lead assegnati randomicamente al gruppo '{selected_group['name']}'!")
+                                if failed_count > 0:
+                                    st.warning(f"⚠️ **{failed_count}** lead non assegnati (errore)")
+                                st.rerun()
+                            else:
+                                st.error("❌ Errore nell'assegnazione randomica dei lead. Riprova.")
             
             # Rimozione lead dal gruppo
             if group_leads:
@@ -499,18 +606,20 @@ class LeadGroupManagement:
                 with st.form("remove_lead_from_group_form"):
                     lead_to_remove_options = {f"{lead.get('name', 'N/A')} - {lead.get('company', 'N/A')}": lead['id'] for lead in group_leads}
                     
-                    selected_lead_to_remove = st.selectbox(
-                        "Seleziona Lead da Rimuovere",
+                    selected_leads_to_remove = st.multiselect(
+                        "Seleziona Lead da Rimuovere (Multipla)",
                         options=list(lead_to_remove_options.keys()),
-                        help="Scegli il lead da rimuovere dal gruppo"
+                        help="Scegli uno o più lead da rimuovere dal gruppo",
+                        placeholder="Seleziona i lead da rimuovere..."
                     )
                     
                     col1, col2 = st.columns(2)
                     
                     with col1:
                         remove_button = st.form_submit_button(
-                            "🗑️ Rimuovi Lead",
-                            use_container_width=True
+                            f"🗑️ Rimuovi {len(selected_leads_to_remove)} Lead",
+                            use_container_width=True,
+                            disabled=len(selected_leads_to_remove) == 0
                         )
                     
                     with col2:
@@ -519,27 +628,37 @@ class LeadGroupManagement:
                             use_container_width=True
                         )
                     
-                    if remove_button:
-                        lead_id_to_remove = lead_to_remove_options[selected_lead_to_remove]
+                    if remove_button and selected_leads_to_remove:
+                        success_count = 0
+                        failed_count = 0
                         
-                        # Rimuovi il group_id dal lead (imposta a None)
-                        success = self.db.update_lead(lead_id_to_remove, {'group_id': None})
+                        for lead_name in selected_leads_to_remove:
+                            lead_id_to_remove = lead_to_remove_options[lead_name]
+                            
+                            # Rimuovi il group_id dal lead (imposta a None)
+                            success = self.db.update_lead(lead_id_to_remove, {'group_id': None})
+                            
+                            if success:
+                                success_count += 1
+                                
+                                # Log attività
+                                self.db.log_activity(
+                                    user_id=self.current_user['user_id'],
+                                    action='unassign',
+                                    entity_type='lead',
+                                    entity_id=lead_id_to_remove,
+                                    details=f"Rimosso lead dal gruppo '{selected_group['name']}'"
+                                )
+                            else:
+                                failed_count += 1
                         
-                        if success:
-                            st.success(f"✅ Lead rimosso dal gruppo '{selected_group['name']}'!")
-                            
-                            # Log attività
-                            self.db.log_activity(
-                                user_id=self.current_user['user_id'],
-                                action='unassign',
-                                entity_type='lead',
-                                entity_id=lead_id_to_remove,
-                                details=f"Rimosso lead dal gruppo '{selected_group['name']}'"
-                            )
-                            
+                        if success_count > 0:
+                            st.success(f"✅ **{success_count}** lead rimossi dal gruppo '{selected_group['name']}'!")
+                            if failed_count > 0:
+                                st.warning(f"⚠️ **{failed_count}** lead non rimossi (errore)")
                             st.rerun()
                         else:
-                            st.error("❌ Errore nella rimozione del lead. Riprova.")
+                            st.error("❌ Errore nella rimozione dei lead. Riprova.")
                             
         except Exception as e:
             st.error(f"❌ Errore nella gestione delle assegnazioni lead: {e}")
