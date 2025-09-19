@@ -93,12 +93,9 @@ def render_central_menu(current_page: str = "📊 Dashboard") -> str:
         ("⚙️ Settings", "⚙️ Settings")
     ]
     
-    # Solo Admin può vedere la gestione utenti
+    # Solo Admin può vedere la gestione utenti e gruppi
     if current_user and current_user.get('role_name') == 'Admin':
         menu_options.insert(3, ("👤 Utenti", "👤 Utenti"))
-    
-    # Solo Admin può vedere la gestione gruppi
-    if current_user and current_user.get('role_name') == 'Admin':
         menu_options.insert(4, ("👥 Gruppi", "👥 Gruppi"))
     
     # Crea i pulsanti del menu direttamente
