@@ -84,6 +84,9 @@ class AuthManager:
             # Ottieni il nome del ruolo
             role_name = self._get_role_name(user['role_id'])
             
+            # Ottieni i gruppi di lead dell'utente
+            user_groups = self._get_user_lead_groups(user['id'])
+            
             # Salva la sessione
             session_data = {
                 'user_id': user['id'],
@@ -96,7 +99,10 @@ class AuthManager:
                 'department_id': user.get('department_id'),
                 'department_name': self._get_department_name(user.get('department_id')),
                 'login_time': datetime.now().isoformat(),
-                'permissions': self._get_user_permissions(user['role_id'])
+                'permissions': self._get_user_permissions(user['role_id']),
+                'lead_groups': user_groups,
+                'lead_group_ids': [group['group_id'] for group in user_groups],
+                'can_manage_groups': [group['group_id'] for group in user_groups if group.get('can_manage', False)]
             }
             
             st.session_state[self.session_key] = session_data
@@ -183,6 +189,40 @@ class AuthManager:
             st.error(f"🚫 Accesso negato. Permesso richiesto: {permission}")
             st.stop()
     
+    def can_access_group(self, group_id: int) -> bool:
+        """Verifica se l'utente può accedere a un gruppo specifico"""
+        current_user = self.get_current_user()
+        if not current_user:
+            return False
+        
+        user_group_ids = current_user.get('lead_group_ids', [])
+        return group_id in user_group_ids
+    
+    def can_manage_group(self, group_id: int) -> bool:
+        """Verifica se l'utente può gestire un gruppo specifico"""
+        current_user = self.get_current_user()
+        if not current_user:
+            return False
+        
+        # Admin può gestire tutti i gruppi
+        if current_user.get('role_name') == 'Admin':
+            return True
+        
+        can_manage_groups = current_user.get('can_manage_groups', [])
+        return group_id in can_manage_groups
+    
+    def require_group_access(self, group_id: int):
+        """Verifica che l'utente abbia accesso al gruppo specificato"""
+        if not self.can_access_group(group_id):
+            st.error("🚫 Accesso negato. Non hai accesso a questo gruppo di lead.")
+            st.stop()
+    
+    def require_group_management(self, group_id: int):
+        """Verifica che l'utente possa gestire il gruppo specificato"""
+        if not self.can_manage_group(group_id):
+            st.error("🚫 Accesso negato. Non hai i permessi per gestire questo gruppo.")
+            st.stop()
+    
     def _get_role_name(self, role_id: int) -> str:
         """Ottiene il nome del ruolo"""
         try:
@@ -229,6 +269,14 @@ class AuthManager:
             logger.error(f"Errore nel recupero permessi: {e}")
             return []
     
+    def _get_user_lead_groups(self, user_id: int) -> List[Dict]:
+        """Ottiene i gruppi di lead di un utente"""
+        try:
+            return self.db.get_user_lead_groups(user_id)
+        except Exception as e:
+            logger.error(f"Errore ottenimento gruppi lead utente: {e}")
+            return []
+    
     def create_user(self, user_data: Dict) -> bool:
         """Crea un nuovo utente (solo per admin)"""
         try:
@@ -238,8 +286,8 @@ class AuthManager:
                 logger.warning("Tentativo di creazione utente da utente non admin")
                 return False
             
-            # Hash della password
-            user_data['password_hash'] = self.hash_password(user_data['password'])
+            # La password viene hashata automaticamente dal database manager
+            # Non modificare user_data['password'] - viene passata in chiaro
             
             # Crea l'utente
             user_id = self.db.create_user(user_data)
@@ -276,10 +324,8 @@ class AuthManager:
                 logger.warning("Tentativo di modifica utente non autorizzato")
                 return False
             
-            # Se viene fornita una nuova password, la hasha
-            if 'password' in user_data and user_data['password']:
-                user_data['password_hash'] = self.hash_password(user_data['password'])
-                del user_data['password']
+            # La password viene hashata automaticamente dal database manager
+            # Non modificare user_data['password'] - viene passata in chiaro
             
             # Aggiorna l'utente
             success = self.db.execute_update(

@@ -76,15 +76,25 @@ class LeadTable:
             col_filtro4, col_filtro5, col_filtro6 = st.columns(3)
             
             with col_filtro4:
-                # Filtro assegnato a
-                users = self.db.get_all_users()
-                user_options = ["Tutti"] + [f"{user['first_name']} {user['last_name']}" for user in users]
-                selected_user = st.selectbox(
-                    "👥 Assegnato a",
-                    options=user_options,
-                    index=0,
-                    help="Filtra per utente assegnato"
-                )
+                # Filtro assegnato a - solo per Admin
+                if self.current_user and self.current_user.get('role_name') == 'Admin':
+                    users = self.db.get_all_users()
+                    user_options = ["Tutti"] + [f"{user['first_name']} {user['last_name']}" for user in users]
+                    selected_user = st.selectbox(
+                        "👥 Assegnato a",
+                        options=user_options,
+                        index=0,
+                        help="Filtra per utente assegnato"
+                    )
+                else:
+                    selected_user = "Tutti"
+                    st.selectbox(
+                        "👥 Assegnato a",
+                        options=["Tutti"],
+                        index=0,
+                        help="Filtro disponibile solo per Admin",
+                        disabled=True
+                    )
             
             with col_filtro5:
                 # Filtro fonte
@@ -98,16 +108,25 @@ class LeadTable:
                 )
             
             with col_filtro6:
-                # Filtro azienda
-                companies = self.db.get_leads(filters={}, limit=1000)  # Ottieni lead per estrarre aziende
-                company_list = list(set([lead.get('company', '') for lead in companies if lead.get('company')]))
-                company_options = ["Tutte"] + sorted(company_list)
-                selected_company = st.selectbox(
-                    "🏢 Azienda",
-                    options=company_options,
-                    index=0,
-                    help="Filtra per azienda"
-                )
+                # Filtro gruppo di lead - solo per Admin
+                if self.current_user and self.current_user.get('role_name') == 'Admin':
+                    groups = self.db.get_lead_groups()
+                    group_options = ["Tutti"] + [group['name'] for group in groups]
+                    selected_group = st.selectbox(
+                        "👥 Gruppo",
+                        options=group_options,
+                        index=0,
+                        help="Filtra per gruppo di lead"
+                    )
+                else:
+                    selected_group = "Tutti"
+                    st.selectbox(
+                        "👥 Gruppo",
+                        options=["Tutti"],
+                        index=0,
+                        help="Filtro disponibile solo per Admin",
+                        disabled=True
+                    )
             
             # Filtro di ricerca testuale migliorato
             st.markdown("---")
@@ -135,7 +154,8 @@ class LeadTable:
                 if priority_id:
                     filters['priority_id'] = priority_id
             
-            if selected_user != "Tutti":
+            # Filtro utente - solo per Admin
+            if self.current_user and self.current_user.get('role_name') == 'Admin' and selected_user != "Tutti":
                 user_id = next((user['id'] for user in users if f"{user['first_name']} {user['last_name']}" == selected_user), None)
                 if user_id:
                     filters['assigned_to'] = user_id
@@ -145,8 +165,12 @@ class LeadTable:
                 if source_id:
                     filters['source_id'] = source_id
             
-            if selected_company != "Tutte":
-                filters['company'] = selected_company
+            # Filtro gruppo - solo per Admin
+            if self.current_user and self.current_user.get('role_name') == 'Admin' and selected_group != "Tutti":
+                groups = self.db.get_lead_groups()
+                group_id = next((group['id'] for group in groups if group['name'] == selected_group), None)
+                if group_id:
+                    filters['group_id'] = group_id
             
             if search_term:
                 filters['search'] = search_term
@@ -156,12 +180,98 @@ class LeadTable:
     def render_lead_table(self, filters: Dict = None, page_size: int = 20):
         """Renderizza la tabella dei lead"""
         
-        # Ottieni il conteggio totale dei lead (senza limite)
-        total_leads = self.db.get_leads(filters=filters, limit=10000)  # Limite alto per conteggio
-        total_count = len(total_leads)
-        
-        # Ottieni i lead dal database per la visualizzazione
-        leads = self.db.get_leads(filters=filters, limit=page_size)
+        # Per utenti non-Admin, limita ai lead dei loro gruppi
+        if self.current_user and self.current_user.get('role_name') != 'Admin':
+            # Ottieni solo i lead dei gruppi dell'utente
+            user_leads = self.db.get_leads_for_user_groups(self.current_user['user_id'])
+            
+            # Applica filtri locali ai lead dell'utente
+            if filters:
+                filtered_leads = []
+                for lead in user_leads:
+                    include_lead = True
+                    
+                    if filters.get('state_id') and lead.get('state_id') != filters['state_id']:
+                        include_lead = False
+                    if filters.get('category_id') and lead.get('category_id') != filters['category_id']:
+                        include_lead = False
+                    if filters.get('assigned_to') and lead.get('assigned_to') != filters['assigned_to']:
+                        include_lead = False
+                    if filters.get('group_id') and lead.get('group_id') != filters['group_id']:
+                        include_lead = False
+                    if filters.get('search'):
+                        search_term = filters['search'].lower()
+                        searchable_text = f"{lead.get('name', '')} {lead.get('email', '')} {lead.get('company', '')} {lead.get('notes', '')}".lower()
+                        if search_term not in searchable_text:
+                            include_lead = False
+                    
+                    if include_lead:
+                        filtered_leads.append(lead)
+                
+                leads = filtered_leads
+                total_count = len(leads)
+            else:
+                leads = user_leads
+                total_count = len(leads)
+            
+            # Aggiungi i dati di lookup per i lead dell'utente
+            if leads:
+                # Ottieni tutti gli stati
+                state_ids = list(set([lead.get('state_id') for lead in leads if lead.get('state_id')]))
+                states = {}
+                if state_ids:
+                    state_result = self.db.supabase.table('lead_states').select('id,name').in_('id', state_ids).execute()
+                    states = {state['id']: state['name'] for state in state_result.data}
+                
+                # Ottieni tutte le priorità
+                priority_ids = list(set([lead.get('priority_id') for lead in leads if lead.get('priority_id')]))
+                priorities = {}
+                if priority_ids:
+                    priority_result = self.db.supabase.table('lead_priorities').select('id,name').in_('id', priority_ids).execute()
+                    priorities = {p['id']: p['name'] for p in priority_result.data}
+                
+                # Ottieni tutte le categorie
+                category_ids = list(set([lead.get('category_id') for lead in leads if lead.get('category_id')]))
+                categories = {}
+                if category_ids:
+                    category_result = self.db.supabase.table('lead_categories').select('id,name').in_('id', category_ids).execute()
+                    categories = {c['id']: c['name'] for c in category_result.data}
+                
+                # Ottieni tutte le fonti
+                source_ids = list(set([lead.get('source_id') for lead in leads if lead.get('source_id')]))
+                sources = {}
+                if source_ids:
+                    source_result = self.db.supabase.table('lead_sources').select('id,name').in_('id', source_ids).execute()
+                    sources = {s['id']: s['name'] for s in source_result.data}
+                
+                # Ottieni tutti gli utenti assegnati
+                user_ids = list(set([lead.get('assigned_to') for lead in leads if lead.get('assigned_to')]))
+                users = {}
+                if user_ids:
+                    user_result = self.db.supabase.table('users').select('id,first_name,last_name').in_('id', user_ids).execute()
+                    users = {u['id']: {'first_name': u.get('first_name', ''), 'last_name': u.get('last_name', '')} for u in user_result.data}
+                
+                # Aggiungi i nomi ai lead
+                for lead in leads:
+                    lead['state_name'] = states.get(lead.get('state_id'), 'N/A')
+                    lead['priority_name'] = priorities.get(lead.get('priority_id'), 'N/A')
+                    lead['category_name'] = categories.get(lead.get('category_id'), 'N/A')
+                    lead['source_name'] = sources.get(lead.get('source_id'), 'N/A')
+                    
+                    if lead.get('assigned_to') and lead['assigned_to'] in users:
+                        user = users[lead['assigned_to']]
+                        lead['assigned_first_name'] = user['first_name']
+                        lead['assigned_last_name'] = user['last_name']
+                    else:
+                        lead['assigned_first_name'] = ''
+                        lead['assigned_last_name'] = ''
+        else:
+            # Admin vede tutti i lead
+            total_leads = self.db.get_leads(filters=filters, limit=10000)  # Limite alto per conteggio
+            total_count = len(total_leads)
+            
+            # Ottieni i lead dal database per la visualizzazione
+            leads = self.db.get_leads(filters=filters, limit=page_size)
         
         # Applica filtraggio per ruolo Tester
         if self.current_user and self.current_user.get('role_name') == 'Tester':

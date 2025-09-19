@@ -28,6 +28,7 @@ from components.tasks.task_board import render_task_board_wrapper
 from components.users.user_form import render_user_form_wrapper
 from components.users.user_management import render_user_management_wrapper
 from components.users.password_manager import render_password_manager_wrapper
+from components.groups.lead_group_management import LeadGroupManagement
 from components.contacts.contact_template import render_template_form_wrapper
 from components.contacts.contact_sequence import render_sequence_form_wrapper, render_sequence_list_wrapper, render_sequence_stats_wrapper
 from components.settings.settings_manager import render_settings_wrapper
@@ -255,7 +256,12 @@ def render_dashboard():
     
     # Task recenti
     st.markdown("### ✅ Task Recenti")
-    recent_tasks = db.get_tasks(limit=10)
+    # Per utenti non-Admin, limita ai task dei loro gruppi
+    current_user = get_current_user()
+    if current_user and current_user.get('role_name') != 'Admin':
+        recent_tasks = db.get_tasks_for_user_groups(current_user['user_id'], limit=10)
+    else:
+        recent_tasks = db.get_tasks(limit=10)
     
     if recent_tasks:
         task_df = pd.DataFrame(recent_tasks)
@@ -398,6 +404,15 @@ def render_users_page():
     else:
         # Mostra la gestione utenti principale
         render_user_management_wrapper()
+
+def render_groups_page():
+    """Renderizza la pagina di gestione gruppi lead"""
+    # CONTROLLO SICUREZZA: Solo Admin può accedere alla gestione gruppi
+    auth_manager.require_role(['Admin'])
+    
+    # Inizializza il gestore gruppi
+    groups_manager = LeadGroupManagement()
+    groups_manager.render_groups_page()
 
 def render_contacts_page():
     """Renderizza la pagina di gestione contatti"""
@@ -589,6 +604,8 @@ def main():
         render_portals_page()
     elif page == "👤 Utenti":
         render_users_page()
+    elif page == "👥 Gruppi":
+        render_groups_page()
     elif page == "📞 Contatti":
         render_contacts_page()
     elif page == "🔗 Broker":
