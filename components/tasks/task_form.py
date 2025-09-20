@@ -42,9 +42,15 @@ class TaskForm:
         task_types = self.db.get_task_types()
         lead_priorities = self.db.get_lead_priorities()
         users = self.db.get_all_users()
-        # Ottieni TUTTI i lead (senza limite) per il form
-        # Sempre caricare tutti i lead per permettere la selezione
-        leads = self.db.get_all_leads()
+        
+        # Ottieni lead in base ai permessi dell'utente corrente
+        current_user = get_current_user()
+        if current_user and current_user.get('role_name') != 'Admin':
+            # Per utenti non-Admin, limita ai lead dei loro gruppi
+            leads = self.db.get_leads_for_user_groups(current_user['user_id'])
+        else:
+            # Admin vede tutti i lead
+            leads = self.db.get_all_leads()
         
         # Preparazione dati per selectbox
         states_options = {state['name']: state['id'] for state in task_states}
