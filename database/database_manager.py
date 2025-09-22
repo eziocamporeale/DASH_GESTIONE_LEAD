@@ -2642,10 +2642,15 @@ class DatabaseManager:
             return False
     
     def get_user_lead_groups(self, user_id: int) -> List[Dict]:
-        """Ottiene i gruppi di lead di un utente"""
+        """Ottiene i gruppi di lead di un utente. Se user_id=0, restituisce tutte le assegnazioni."""
         if self.use_supabase:
             try:
-                result = self.supabase.table('user_lead_groups').select('*, lead_groups(*)').eq('user_id', user_id).execute()
+                if user_id == 0:
+                    # Caso speciale: restituisce tutte le assegnazioni
+                    result = self.supabase.table('user_lead_groups').select('*, lead_groups(*)').execute()
+                else:
+                    # Caso normale: restituisce solo le assegnazioni dell'utente specifico
+                    result = self.supabase.table('user_lead_groups').select('*, lead_groups(*)').eq('user_id', user_id).execute()
                 return result.data
             except Exception as e:
                 logger.error(f"❌ Errore get_user_lead_groups Supabase: {e}")
