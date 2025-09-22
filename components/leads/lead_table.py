@@ -271,7 +271,7 @@ class LeadTable:
             total_count = len(total_leads)
             
             # Ottieni i lead dal database per la visualizzazione
-            leads = self.db.get_leads(filters=filters, limit=page_size)
+            leads = self.db.get_leads(filters=filters, limit=10000)
         
         # Applica filtraggio per ruolo Tester
         if self.current_user and self.current_user.get('role_name') == 'Tester':
@@ -920,8 +920,8 @@ def render_lead_table_wrapper():
     # Filtri
     filters = table.render_filters()
     
-    # Tabella - Mostra tutti i lead (limite aumentato a 1000)
-    table.render_lead_table(filters, page_size=1000)
+    # Tabella - Mostra tutti i lead (senza limite)
+    table.render_lead_table(filters, page_size=10000)
 
 # Test della classe
 if __name__ == "__main__":
