@@ -149,13 +149,13 @@ class TaskBoard:
                     st.rerun()
             
             with col2:
-                st.button("📊 Export Excel", use_container_width=True, disabled=True, help="Nessun dato da esportare")
+                st.button("📊 Export Excel", use_container_width=True, disabled=True, help="Nessun dato da esportare", key="export_excel_empty_board")
             
             with col3:
-                st.button("📈 Analytics", use_container_width=True, disabled=True, help="Nessun dato per analytics")
+                st.button("📈 Analytics", use_container_width=True, disabled=True, help="Nessun dato per analytics", key="analytics_empty_board")
             
             with col4:
-                st.button("🗑️ Elimina Multipli", use_container_width=True, disabled=True, help="Nessun task da eliminare")
+                st.button("🗑️ Elimina Multipli", use_container_width=True, disabled=True, help="Nessun task da eliminare", key="delete_multiple_empty_board")
             
             with col5:
                 if st.button("🔄 Aggiorna", use_container_width=True, key="refresh_empty_board"):
@@ -449,13 +449,13 @@ class TaskBoard:
                     st.rerun()
             
             with col2:
-                st.button("📊 Export Excel", use_container_width=True, disabled=True, help="Nessun dato da esportare")
+                st.button("📊 Export Excel", use_container_width=True, disabled=True, help="Nessun dato da esportare", key="export_excel_empty_list")
             
             with col3:
-                st.button("📈 Analytics", use_container_width=True, disabled=True, help="Nessun dato per analytics")
+                st.button("📈 Analytics", use_container_width=True, disabled=True, help="Nessun dato per analytics", key="analytics_empty_list")
             
             with col4:
-                st.button("🗑️ Elimina Multipli", use_container_width=True, disabled=True, help="Nessun task da eliminare")
+                st.button("🗑️ Elimina Multipli", use_container_width=True, disabled=True, help="Nessun task da eliminare", key="delete_multiple_empty_list")
             
             with col5:
                 if st.button("🔄 Aggiorna", use_container_width=True, key="refresh_empty_list"):
