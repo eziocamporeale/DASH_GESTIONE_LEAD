@@ -151,7 +151,8 @@ class DatabaseManager:
         """Ottiene tutti i lead"""
         if self.use_supabase:
             try:
-                result = self.supabase.table('leads').select('*').execute()
+                # Ottieni tutti i lead con limite alto per evitare il limite Supabase di 1000
+                result = self.supabase.table('leads').select('*').order('created_at', desc=True).limit(10000).execute()
                 return result.data
             except Exception as e:
                 logger.error(f"❌ Errore get_all_leads Supabase: {e}")
@@ -2722,7 +2723,7 @@ class DatabaseManager:
                 group_ids = [ug['group_id'] for ug in user_groups]
                 
                 # Ottieni i lead di questi gruppi
-                result = self.supabase.table('leads').select('*').in_('group_id', group_ids).execute()
+                result = self.supabase.table('leads').select('*').in_('group_id', group_ids).limit(10000).execute()
                 return result.data
             except Exception as e:
                 logger.error(f"❌ Errore get_leads_for_user_groups Supabase: {e}")
