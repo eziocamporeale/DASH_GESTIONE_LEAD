@@ -2876,6 +2876,69 @@ class DatabaseManager:
             logger.warning("⚠️ SQLite non supportato per produzione. Usa Supabase.")
             return []
     
+    def reset_tasks(self, user_id: int = None, reset_all: bool = False) -> Dict:
+        """
+        Resetta le task con controlli di sicurezza
+        
+        Args:
+            user_id: ID dell'utente che richiede il reset
+            reset_all: Se True, resetta tutte le task (solo Admin)
+        
+        Returns:
+            Dict con risultati del reset
+        """
+        if self.use_supabase:
+            try:
+                # Controllo sicurezza: solo Admin può resettare tutte le task
+                if reset_all:
+                    # Verifica che l'utente sia Admin
+                    user_result = self.supabase.table('users').select('id,role_id').eq('id', user_id).execute()
+                    if not user_result.data:
+                        return {'success': False, 'message': 'Utente non trovato'}
+                    
+                    user_role = user_result.data[0].get('role_id')
+                    if user_role != 1:  # 1 = Admin
+                        return {'success': False, 'message': 'Solo Admin può resettare tutte le task'}
+                    
+                    # Reset di tutte le task
+                    result = self.supabase.table('tasks').delete().neq('id', 0).execute()
+                    deleted_count = len(result.data) if result.data else 0
+                    
+                    return {
+                        'success': True, 
+                        'message': f'Reset completato: {deleted_count} task eliminate',
+                        'deleted_count': deleted_count
+                    }
+                
+                else:
+                    # Reset solo delle task dell'utente specifico
+                    if not user_id:
+                        return {'success': False, 'message': 'ID utente richiesto per reset parziale'}
+                    
+                    # Ottieni le task dell'utente
+                    user_tasks = self.supabase.table('tasks').select('id').eq('assigned_to', user_id).execute()
+                    task_ids = [task['id'] for task in user_tasks.data]
+                    
+                    if not task_ids:
+                        return {'success': True, 'message': 'Nessuna task trovata per questo utente', 'deleted_count': 0}
+                    
+                    # Elimina le task dell'utente
+                    result = self.supabase.table('tasks').delete().in_('id', task_ids).execute()
+                    deleted_count = len(result.data) if result.data else 0
+                    
+                    return {
+                        'success': True, 
+                        'message': f'Reset completato: {deleted_count} task eliminate per utente {user_id}',
+                        'deleted_count': deleted_count
+                    }
+                    
+            except Exception as e:
+                logger.error(f"❌ Errore reset_tasks Supabase: {e}")
+                return {'success': False, 'message': f'Errore durante il reset: {str(e)}'}
+        else:
+            logger.warning("⚠️ SQLite non supportato per produzione. Usa Supabase.")
+            return {'success': False, 'message': 'SQLite non supportato per produzione'}
+    
     def assign_lead_to_group(self, lead_id: int, group_id: int) -> bool:
         """Assegna un lead a un gruppo"""
         if self.use_supabase:
