@@ -96,3 +96,4 @@ Dopo l'importazione:
 2. Verifica la qualità dei dati
 3. Assegna i lead agli utenti
 4. Configura stati e priorità se necessario
+
