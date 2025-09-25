@@ -28,6 +28,86 @@ class TaskBoard:
         self.db = DatabaseManager()
         self.current_user = get_current_user()
     
+    def render_reset_section(self):
+        """Renderizza la sezione di reset task con controlli di sicurezza"""
+        if not self.current_user:
+            return
+        
+        # Sezione collassabile per reset task
+        with st.expander("🗑️ Reset Task", expanded=False):
+            st.markdown("### 🗑️ Reset Task")
+            st.markdown("⚠️ **ATTENZIONE**: Questa operazione eliminerà definitivamente le task!")
+            
+            # Controlla se l'utente è Admin
+            is_admin = self.current_user.get('role_name') == 'Admin'
+            user_id = self.current_user.get('user_id')
+            
+            if is_admin:
+                st.markdown("**🔑 Modalità Admin**: Puoi resettare tutte le task o solo le tue")
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    if st.button("🗑️ Reset TUTTE le Task", type="secondary", use_container_width=True):
+                        # Conferma per reset completo
+                        if st.session_state.get('confirm_reset_all', False):
+                            result = self.db.reset_tasks(user_id=user_id, reset_all=True)
+                            if result['success']:
+                                st.success(f"✅ {result['message']}")
+                                st.rerun()
+                            else:
+                                st.error(f"❌ {result['message']}")
+                        else:
+                            st.session_state['confirm_reset_all'] = True
+                            st.warning("⚠️ Conferma il reset di TUTTE le task cliccando di nuovo!")
+                
+                with col2:
+                    if st.button("🗑️ Reset MIE Task", type="secondary", use_container_width=True):
+                        # Conferma per reset personale
+                        if st.session_state.get('confirm_reset_personal', False):
+                            result = self.db.reset_tasks(user_id=user_id, reset_all=False)
+                            if result['success']:
+                                st.success(f"✅ {result['message']}")
+                                st.rerun()
+                            else:
+                                st.error(f"❌ {result['message']}")
+                        else:
+                            st.session_state['confirm_reset_personal'] = True
+                            st.warning("⚠️ Conferma il reset delle tue task cliccando di nuovo!")
+                
+                # Reset conferme se necessario
+                if st.button("🔄 Annulla Reset", type="primary", use_container_width=True):
+                    st.session_state['confirm_reset_all'] = False
+                    st.session_state['confirm_reset_personal'] = False
+                    st.rerun()
+            
+            else:
+                st.markdown("**👤 Modalità Utente**: Puoi resettare solo le tue task")
+                
+                if st.button("🗑️ Reset MIE Task", type="secondary", use_container_width=True):
+                    # Conferma per reset personale
+                    if st.session_state.get('confirm_reset_personal', False):
+                        result = self.db.reset_tasks(user_id=user_id, reset_all=False)
+                        if result['success']:
+                            st.success(f"✅ {result['message']}")
+                            st.rerun()
+                        else:
+                            st.error(f"❌ {result['message']}")
+                    else:
+                        st.session_state['confirm_reset_personal'] = True
+                        st.warning("⚠️ Conferma il reset delle tue task cliccando di nuovo!")
+                
+                # Reset conferma se necessario
+                if st.button("🔄 Annulla Reset", type="primary", use_container_width=True):
+                    st.session_state['confirm_reset_personal'] = False
+                    st.rerun()
+            
+            # Mostra stato delle conferme
+            if st.session_state.get('confirm_reset_all', False):
+                st.error("🔴 **ATTENZIONE**: Reset di TUTTE le task in attesa di conferma!")
+            elif st.session_state.get('confirm_reset_personal', False):
+                st.warning("🟡 **ATTENZIONE**: Reset delle tue task in attesa di conferma!")
+    
     def render_task_board(self, filters: Dict = None):
         """Renderizza la board Kanban dei task"""
         
@@ -38,6 +118,9 @@ class TaskBoard:
             horizontal=True,
             key="task_view_mode"
         )
+        
+        # Sezione Reset Task (solo per Admin o utenti con task)
+        self.render_reset_section()
         
         # Per utenti non-Admin, limita ai task dei loro gruppi
         if self.current_user and self.current_user.get('role_name') != 'Admin':
