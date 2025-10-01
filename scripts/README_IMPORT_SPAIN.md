@@ -97,3 +97,6 @@ Dopo l'importazione:
 3. Assegna i lead agli utenti
 4. Configura stati e priorità se necessario
 
+
+
+
