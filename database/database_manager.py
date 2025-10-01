@@ -148,12 +148,28 @@ class DatabaseManager:
     # ==================== METODI LEAD ====================
     
     def get_all_leads(self) -> List[Dict]:
-        """Ottiene tutti i lead"""
+        """Ottiene tutti i lead usando paginazione per superare il limite di 1000"""
         if self.use_supabase:
             try:
-                # Ottieni tutti i lead con limite alto per evitare il limite Supabase di 1000
-                result = self.supabase.table('leads').select('*').order('created_at', desc=True).limit(10000).execute()
-                return result.data
+                # Prima ottieni il conteggio totale
+                count_result = self.supabase.table('leads').select('*', count='exact').limit(1).execute()
+                total_count = count_result.count if count_result.count else 0
+                
+                # Se non ci sono lead, ritorna lista vuota
+                if total_count == 0:
+                    return []
+                
+                # Ottieni i lead a blocchi di 1000 per superare il limite di Supabase
+                all_leads = []
+                page_size = 1000
+                for offset in range(0, total_count, page_size):
+                    # range è 0-based e l'endpoint è incluso
+                    end = min(offset + page_size - 1, total_count - 1)
+                    result = self.supabase.table('leads').select('*').order('created_at', desc=True).range(offset, end).execute()
+                    all_leads.extend(result.data)
+                    
+                logger.info(f"✅ Recuperati {len(all_leads)} lead su {total_count} totali")
+                return all_leads
             except Exception as e:
                 logger.error(f"❌ Errore get_all_leads Supabase: {e}")
                 return []
@@ -198,7 +214,19 @@ class DatabaseManager:
                         query = query.or_(f"name.ilike.%{search_term}%,email.ilike.%{search_term}%,company.ilike.%{search_term}%")
                 
                 # Ordina e limita
-                result = query.order('created_at', desc=True).range(offset, offset + limit - 1).execute()
+                # Se limit è molto alto (es. 10000), ottieni il conteggio reale
+                if limit >= 10000:
+                    # Ottieni il conteggio totale per range corretto
+                    count_result = query.select('*', count='exact').limit(1).execute()
+                    total = count_result.count if count_result.count else 0
+                    if total > 0:
+                        # range è 0-based e l'endpoint è incluso
+                        end_index = min(offset + limit - 1, total - 1)
+                        result = query.order('created_at', desc=True).range(offset, end_index).execute()
+                    else:
+                        result = query.order('created_at', desc=True).limit(limit).execute()
+                else:
+                    result = query.order('created_at', desc=True).range(offset, offset + limit - 1).execute()
                 leads = result.data
                 
                 # Ottieni tutti i dati di lookup in una volta sola
@@ -2712,7 +2740,7 @@ class DatabaseManager:
             return []
     
     def get_leads_for_user_groups(self, user_id: int) -> List[Dict]:
-        """Ottiene tutti i lead accessibili da un utente in base ai suoi gruppi"""
+        """Ottiene tutti i lead accessibili da un utente in base ai suoi gruppi usando paginazione"""
         if self.use_supabase:
             try:
                 # Ottieni i gruppi dell'utente
@@ -2722,9 +2750,25 @@ class DatabaseManager:
                 
                 group_ids = [ug['group_id'] for ug in user_groups]
                 
-                # Ottieni i lead di questi gruppi
-                result = self.supabase.table('leads').select('*').in_('group_id', group_ids).limit(10000).execute()
-                return result.data
+                # Prima ottieni il conteggio totale per questi gruppi
+                count_query = self.supabase.table('leads').select('*', count='exact').in_('group_id', group_ids)
+                count_result = count_query.limit(1).execute()
+                total_count = count_result.count if count_result.count else 0
+                
+                # Se non ci sono lead, ritorna lista vuota
+                if total_count == 0:
+                    return []
+                
+                # Ottieni i lead a blocchi di 1000 per superare il limite di Supabase
+                all_leads = []
+                page_size = 1000
+                for offset in range(0, total_count, page_size):
+                    end = min(offset + page_size - 1, total_count - 1)
+                    result = self.supabase.table('leads').select('*').in_('group_id', group_ids).range(offset, end).execute()
+                    all_leads.extend(result.data)
+                    
+                logger.info(f"✅ Recuperati {len(all_leads)} lead su {total_count} totali per utente {user_id}")
+                return all_leads
             except Exception as e:
                 logger.error(f"❌ Errore get_leads_for_user_groups Supabase: {e}")
                 return []
