@@ -413,6 +413,5 @@ if __name__ == "__main__":
     
     print("✅ AuthManager testato con successo!")
 
-# Forza aggiornamento per Streamlit Cloud - VERSIONE 2
-print("🔄 AuthManager aggiornato per Streamlit Cloud - V2")
-print("🔄 File ricreato per forzare sincronizzazione")
+# Forza aggiornamento per Streamlit Cloud
+print("🔄 AuthManager aggiornato per Streamlit Cloud")
