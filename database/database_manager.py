@@ -216,18 +216,40 @@ class DatabaseManager:
                 # Ordina e limita
                 # Se limit è molto alto (es. 10000), ottieni il conteggio reale
                 if limit >= 10000:
-                    # Ottieni il conteggio totale per range corretto
-                    count_result = query.select('*', count='exact').limit(1).execute()
+                    # Crea una nuova query per il conteggio (non modificare la query originale)
+                    count_query = self.supabase.table('leads').select('*', count='exact')
+                    
+                    # Applica gli stessi filtri alla query di conteggio
+                    if filters:
+                        if filters.get('state_id'):
+                            count_query = count_query.eq('state_id', filters['state_id'])
+                        if filters.get('category_id'):
+                            count_query = count_query.eq('category_id', filters['category_id'])
+                        if filters.get('assigned_to'):
+                            count_query = count_query.eq('assigned_to', filters['assigned_to'])
+                        if filters.get('group_id'):
+                            count_query = count_query.eq('group_id', filters['group_id'])
+                        if filters.get('search'):
+                            search_term = filters['search']
+                            count_query = count_query.or_(f"name.ilike.%{search_term}%,email.ilike.%{search_term}%,company.ilike.%{search_term}%")
+                    
+                    count_result = count_query.limit(1).execute()
                     total = count_result.count if count_result.count else 0
                     if total > 0:
-                        # range è 0-based e l'endpoint è incluso
-                        end_index = min(offset + limit - 1, total - 1)
-                        result = query.order('created_at', desc=True).range(offset, end_index).execute()
+                        # Usa paginazione per superare il limite di 1000
+                        all_leads = []
+                        page_size = 1000
+                        for page_offset in range(offset, min(offset + limit, total), page_size):
+                            end = min(page_offset + page_size - 1, total - 1)
+                            page_result = query.order('created_at', desc=True).range(page_offset, end).execute()
+                            all_leads.extend(page_result.data)
+                        leads = all_leads
                     else:
                         result = query.order('created_at', desc=True).limit(limit).execute()
+                        leads = result.data
                 else:
                     result = query.order('created_at', desc=True).range(offset, offset + limit - 1).execute()
-                leads = result.data
+                    leads = result.data
                 
                 # Ottieni tutti i dati di lookup in una volta sola
                 if leads:
