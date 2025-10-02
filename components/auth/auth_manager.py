@@ -412,3 +412,6 @@ if __name__ == "__main__":
         print("❌ Login admin fallito")
     
     print("✅ AuthManager testato con successo!")
+
+# Forza aggiornamento per Streamlit Cloud
+print("🔄 AuthManager aggiornato per Streamlit Cloud")
