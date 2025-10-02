@@ -234,7 +234,7 @@ def render_dashboard():
                 color_discrete_sequence=px.colors.qualitative.Set3
             )
             fig_states.update_layout(height=400)
-            st.plotly_chart(fig_states, width='stretch')
+            st.plotly_chart(fig_states, use_container_width=True)
         else:
             st.info("Nessun dato disponibile")
     
@@ -250,7 +250,7 @@ def render_dashboard():
                 color_continuous_scale='Blues'
             )
             fig_sources.update_layout(height=400, xaxis_title="Fonte", yaxis_title="Numero Lead")
-            st.plotly_chart(fig_sources, width='stretch')
+            st.plotly_chart(fig_sources, use_container_width=True)
         else:
             st.info("Nessun dato disponibile")
     
