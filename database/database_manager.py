@@ -1173,10 +1173,19 @@ class DatabaseManager:
             results = self.execute_query(query, (user_id,))
             return results[0] if results else None
     
-    def create_user(self, user_data: Dict) -> Optional[int]:
+    def create_user(self, user_data: Dict, current_user_role: str = None) -> Optional[int]:
         """Crea un nuovo utente e restituisce l'ID dell'utente creato"""
         if self.use_supabase:
             try:
+                # Validazione sicurezza: solo admin può creare utenti admin
+                requested_role_id = user_data.get('role_id', 2)
+                is_admin_requested = user_data.get('is_admin', False)
+                
+                if requested_role_id == 1 or is_admin_requested:
+                    if current_user_role != 'Admin':
+                        logger.warning(f"❌ Tentativo di creare utente admin da utente non autorizzato (ruolo: {current_user_role})")
+                        return None
+                
                 # Gestisce l'hashing della password se viene fornita in chiaro
                 password_hash = user_data.get('password_hash', '')
                 if not password_hash and 'password' in user_data:
@@ -1194,9 +1203,9 @@ class DatabaseManager:
                     'first_name': user_data.get('first_name', ''),
                     'last_name': user_data.get('last_name', ''),
                     'phone': user_data.get('phone', ''),
-                    'role_id': user_data.get('role_id', 1),  # Default role_id = 1
+                    'role_id': requested_role_id,  # Usa il role_id richiesto (con validazione sopra)
                     'is_active': user_data.get('is_active', True),
-                    'is_admin': user_data.get('is_admin', False),
+                    'is_admin': is_admin_requested,  # Usa il flag admin richiesto (con validazione sopra)
                     'notes': user_data.get('notes', ''),
                     'department_id': user_data.get('department_id'),
                     'created_by': user_data.get('created_by')
@@ -1312,6 +1321,21 @@ class DatabaseManager:
         """Elimina un utente"""
         if self.use_supabase:
             try:
+                # Prima verifica se l'utente è un admin
+                user_result = self.supabase.table('users').select('role_id, is_admin').eq('id', user_id).execute()
+                
+                if user_result.data:
+                    user = user_result.data[0]
+                    is_admin = user.get('role_id') == 1 or user.get('is_admin', False)
+                    
+                    if is_admin:
+                        # Conta quanti admin ci sono
+                        admin_count = self.supabase.table('users').select('id', count='exact').or_('role_id.eq.1,is_admin.eq.true').execute()
+                        
+                        if admin_count.count and admin_count.count <= 1:
+                            logger.warning(f"❌ Impossibile eliminare l'ultimo admin (ID: {user_id})")
+                            return False
+                
                 result = self.supabase.table('users').delete().eq('id', user_id).execute()
                 return len(result.data) > 0
             except Exception as e:

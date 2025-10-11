@@ -223,6 +223,22 @@ class UserManagement:
                         st.session_state['password_mode'] = 'reset'
                         st.session_state['password_user_data'] = original_row.to_dict()
                         st.rerun()
+                    
+                    # Pulsante DELETE - Solo per admin e non per se stesso
+                    current_user = self.current_user
+                    can_delete = (current_user and 
+                                current_user.get('role_name') == 'Admin' and 
+                                user_id != current_user.get('user_id'))
+                    
+                    if can_delete:
+                        if st.button("🗑️", key=f"delete_{user_id}", help="Elimina utente"):
+                            st.session_state['confirm_delete_user'] = user_id
+                            st.session_state['delete_user_data'] = original_row.to_dict()
+                            st.rerun()
+                    else:
+                        # Mostra pulsante disabilitato con tooltip
+                        if st.button("🗑️", key=f"delete_{user_id}", help="Solo admin può eliminare utenti (e non se stesso)", disabled=True):
+                            pass
                 
                 st.markdown("---")
     
@@ -250,6 +266,21 @@ class UserManagement:
         with col4:
             if st.button("🔄 Aggiorna", use_container_width=True):
                 st.rerun()
+        
+        # Aggiungi eliminazione multipla per admin
+        current_user = self.current_user
+        if current_user and current_user.get('role_name') == 'Admin':
+            st.markdown("---")
+            st.markdown("### 🗑️ Eliminazione Multipla")
+            
+            col1, col2 = st.columns([2, 1])
+            
+            with col1:
+                st.info("💡 Seleziona gli utenti da eliminare nella tabella sottostante")
+            
+            with col2:
+                if st.button("🗑️ Elimina Selezionati", type="secondary", use_container_width=True):
+                    st.warning("⚠️ Funzionalità di eliminazione multipla in arrivo...")
     
     def render_user_details(self, user_id: int):
         """Renderizza i dettagli di un utente"""
@@ -451,16 +482,90 @@ class UserManagement:
 
 def render_user_management_wrapper():
     """Wrapper per renderizzare la gestione utenti"""
+    from components.auth.auth_manager import get_current_user
+    
+    # CONTROLLO SICUREZZA: Solo Admin può accedere alla gestione utenti
+    current_user = get_current_user()
+    if not current_user or current_user.get('role_name') != 'Admin':
+        st.error("🚫 Accesso negato. Solo gli amministratori possono gestire gli utenti.")
+        return
+    
     management = UserManagement()
     
-    # Filtri
-    filters = management.render_user_filters()
+    # Gestione conferma eliminazione utente
+    if st.session_state.get('confirm_delete_user'):
+        user_id = st.session_state['confirm_delete_user']
+        user_data = st.session_state.get('delete_user_data', {})
+        
+        st.markdown("### 🗑️ Conferma Eliminazione Utente")
+        st.markdown("⚠️ **ATTENZIONE**: Questa azione è irreversibile!")
+        
+        st.markdown(f"""
+        **Utente da eliminare:**
+        - 👤 Nome: {user_data.get('first_name', 'N/A')} {user_data.get('last_name', 'N/A')}
+        - 📧 Email: {user_data.get('email', 'N/A')}
+        - 🔑 Username: {user_data.get('username', 'N/A')}
+        - 👑 Ruolo: {user_data.get('role_name', 'N/A')}
+        """)
+        
+        col1, col2, col3 = st.columns([1, 1, 2])
+        
+        with col1:
+            # Verifica se è un admin
+            is_admin_user = user_data.get('role_id') == 1 or user_data.get('is_admin', False)
+            
+            if is_admin_user:
+                st.warning("⚠️ **ATTENZIONE**: Stai per eliminare un utente ADMIN!")
+                
+            if st.button("✅ Conferma Eliminazione", type="primary", use_container_width=True):
+                result = management.db.delete_user(user_id)
+                
+                if result:
+                    st.success("✅ Utente eliminato con successo!")
+                    
+                    # Log attività
+                    try:
+                        management.db.log_activity(
+                            user_id=current_user['user_id'],
+                            action='delete_user',
+                            entity_type='user',
+                            entity_id=user_id,
+                            details=f"Utente {user_data.get('username', 'N/A')} eliminato"
+                        )
+                    except Exception as e:
+                        st.warning(f"⚠️ Errore nel log attività: {e}")
+                    
+                    # Pulisci session state
+                    del st.session_state['confirm_delete_user']
+                    if 'delete_user_data' in st.session_state:
+                        del st.session_state['delete_user_data']
+                    
+                    st.rerun()
+                else:
+                    if is_admin_user:
+                        st.error("❌ Impossibile eliminare l'utente: potrebbe essere l'ultimo admin del sistema")
+                    else:
+                        st.error("❌ Errore durante l'eliminazione dell'utente")
+        
+        with col2:
+            if st.button("❌ Annulla", use_container_width=True):
+                del st.session_state['confirm_delete_user']
+                if 'delete_user_data' in st.session_state:
+                    del st.session_state['delete_user_data']
+                st.rerun()
+        
+        with col3:
+            st.info("💡 **Suggerimento**: Prima di eliminare un utente, assicurati che non abbia dati associati (lead, task, etc.)")
     
-    # Azioni
-    management.render_user_actions()
-    
-    # Tabella
-    management.render_user_table(filters)
+    else:
+        # Filtri
+        filters = management.render_user_filters()
+        
+        # Azioni
+        management.render_user_actions()
+        
+        # Tabella
+        management.render_user_table(filters)
 
 # Test della classe
 if __name__ == "__main__":

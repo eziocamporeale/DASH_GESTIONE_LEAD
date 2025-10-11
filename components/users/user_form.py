@@ -254,7 +254,8 @@ class UserForm:
                 
                 # Salva nel database
                 if mode == "create":
-                    user_id = self.db.create_user(form_data)
+                    current_user_role = self.current_user.get('role_name', 'User') if self.current_user else 'User'
+                    user_id = self.db.create_user(form_data, current_user_role)
                     if user_id:
                         st.success(f"✅ Utente '{first_name} {last_name}' creato con successo!")
                         
@@ -314,6 +315,14 @@ class UserForm:
 
 def render_user_form_wrapper(user_data: Optional[Dict] = None, mode: str = "create"):
     """Wrapper per renderizzare il form utente"""
+    from components.auth.auth_manager import get_current_user
+    
+    # CONTROLLO SICUREZZA: Solo Admin può gestire gli utenti
+    current_user = get_current_user()
+    if not current_user or current_user.get('role_name') != 'Admin':
+        st.error("🚫 Accesso negato. Solo gli amministratori possono gestire gli utenti.")
+        return None
+    
     form = UserForm()
     return form.render_user_form(user_data, mode)
 
