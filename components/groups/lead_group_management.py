@@ -89,7 +89,7 @@ class LeadGroupManagement:
             # Mostra la tabella
             st.dataframe(
                 df,
-                use_container_width=True,
+                width='stretch',
                 hide_index=True
             )
             
@@ -98,15 +98,15 @@ class LeadGroupManagement:
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                if st.button("🔄 Aggiorna Lista", use_container_width=True):
+                if st.button("🔄 Aggiorna Lista", width='stretch'):
                     st.rerun()
             
             with col2:
-                if st.button("📊 Statistiche", use_container_width=True):
+                if st.button("📊 Statistiche", width='stretch'):
                     self.render_group_statistics()
             
             with col3:
-                if st.button("🗑️ Gestisci Gruppi", use_container_width=True):
+                if st.button("🗑️ Gestisci Gruppi", width='stretch'):
                     self.render_group_management()
                     
         except Exception as e:
@@ -149,13 +149,13 @@ class LeadGroupManagement:
             with col1:
                 submit_button = st.form_submit_button(
                     "💾 Crea Gruppo",
-                    use_container_width=True
+                    width='stretch'
                 )
             
             with col2:
                 cancel_button = st.form_submit_button(
                     "❌ Annulla",
-                    use_container_width=True
+                    width='stretch'
                 )
             
             # Gestione submit
@@ -253,7 +253,7 @@ class LeadGroupManagement:
                 
                 if user_data:
                     df_users = pd.DataFrame(user_data)
-                    st.dataframe(df_users, use_container_width=True, hide_index=True)
+                    st.dataframe(df_users, width='stretch', hide_index=True)
                 else:
                     st.info("📭 Nessun utente assegnato a questo gruppo.")
             else:
@@ -287,13 +287,13 @@ class LeadGroupManagement:
                     with col1:
                         add_button = st.form_submit_button(
                             "➕ Aggiungi Utente",
-                            use_container_width=True
+                            width='stretch'
                         )
                     
                     with col2:
                         cancel_button = st.form_submit_button(
                             "❌ Annulla",
-                            use_container_width=True
+                            width='stretch'
                         )
                     
                     if add_button:
@@ -340,13 +340,13 @@ class LeadGroupManagement:
                     with col1:
                         remove_button = st.form_submit_button(
                             "🗑️ Rimuovi Utente",
-                            use_container_width=True
+                            width='stretch'
                         )
                     
                     with col2:
                         cancel_button = st.form_submit_button(
                             "❌ Annulla",
-                            use_container_width=True
+                            width='stretch'
                         )
                     
                     if remove_button:
@@ -433,7 +433,7 @@ class LeadGroupManagement:
                     })
                 
                 df_leads = pd.DataFrame(lead_data)
-                st.dataframe(df_leads, use_container_width=True, hide_index=True)
+                st.dataframe(df_leads, width='stretch', hide_index=True)
             else:
                 st.info("📭 Nessun lead assegnato a questo gruppo.")
             
@@ -470,14 +470,14 @@ class LeadGroupManagement:
                         with col1:
                             assign_button = st.form_submit_button(
                                 f"📝 Assegna {len(selected_leads_names)} Lead",
-                                use_container_width=True,
+                                width='stretch',
                                 disabled=len(selected_leads_names) == 0
                             )
                         
                         with col2:
                             cancel_button = st.form_submit_button(
                                 "❌ Annulla",
-                                use_container_width=True
+                                width='stretch'
                             )
                         
                         if assign_button and selected_leads_names:
@@ -550,21 +550,21 @@ class LeadGroupManagement:
                             
                             if preview_data:
                                 df_preview = pd.DataFrame(preview_data)
-                                st.dataframe(df_preview, use_container_width=True, hide_index=True)
+                                st.dataframe(df_preview, width='stretch', hide_index=True)
                         
                         col1, col2 = st.columns(2)
                         
                         with col1:
                             random_assign_button = st.form_submit_button(
                                 f"🎲 Assegna {num_leads} Lead Randomici",
-                                use_container_width=True,
+                                width='stretch',
                                 disabled=num_leads == 0
                             )
                         
                         with col2:
                             cancel_button = st.form_submit_button(
                                 "❌ Annulla",
-                                use_container_width=True
+                                width='stretch'
                             )
                         
                         if random_assign_button and num_leads > 0:
@@ -618,14 +618,14 @@ class LeadGroupManagement:
                     with col1:
                         remove_button = st.form_submit_button(
                             f"🗑️ Rimuovi {len(selected_leads_to_remove)} Lead",
-                            use_container_width=True,
+                            width='stretch',
                             disabled=len(selected_leads_to_remove) == 0
                         )
                     
                     with col2:
                         cancel_button = st.form_submit_button(
                             "❌ Annulla",
-                            use_container_width=True
+                            width='stretch'
                         )
                     
                     if remove_button and selected_leads_to_remove:
@@ -717,11 +717,27 @@ class LeadGroupManagement:
                 st.info("📭 Nessun gruppo disponibile.")
                 return
             
+            # Gestione stato selezione gruppo
+            if 'selected_group_id' not in st.session_state:
+                st.session_state['selected_group_id'] = None
+            
             # Selezione gruppo per gestione
             group_options = {f"{group['name']}": group['id'] for group in groups}
+            group_names = list(group_options.keys())
+            
+            # Trova l'indice del gruppo selezionato
+            current_index = 0
+            if st.session_state['selected_group_id']:
+                current_group = next((g for g in groups if g['id'] == st.session_state['selected_group_id']), None)
+                if current_group:
+                    current_group_name = current_group['name']
+                    if current_group_name in group_names:
+                        current_index = group_names.index(current_group_name)
+            
             selected_group_name = st.selectbox(
                 "Seleziona Gruppo da Gestire",
-                options=list(group_options.keys()),
+                options=group_names,
+                index=current_index,
                 help="Scegli il gruppo da modificare o eliminare"
             )
             
@@ -735,86 +751,29 @@ class LeadGroupManagement:
                 st.error("❌ Gruppo non trovato.")
                 return
             
-            # Form di modifica gruppo
-            st.markdown(f"### ✏️ Modifica Gruppo: {selected_group['name']}")
+            # Aggiorna session state solo se il gruppo è cambiato
+            if st.session_state['selected_group_id'] != selected_group_id:
+                st.session_state['selected_group_id'] = selected_group_id
+                st.session_state['confirm_delete_group'] = False
             
-            with st.form("edit_group_form"):
-                new_name = st.text_input(
-                    "Nome Gruppo",
-                    value=selected_group['name'],
-                    help="Nome del gruppo"
-                )
+            # Gestione conferma eliminazione
+            if st.session_state.get('confirm_delete_group'):
+                st.markdown("### 🗑️ Conferma Eliminazione Gruppo")
+                st.markdown("⚠️ **ATTENZIONE**: Questa azione è irreversibile!")
                 
-                new_description = st.text_area(
-                    "Descrizione",
-                    value=selected_group.get('description', ''),
-                    help="Descrizione del gruppo"
-                )
+                st.markdown(f"""
+                **Gruppo da eliminare:**
+                - 📝 Nome: {selected_group['name']}
+                - 📄 Descrizione: {selected_group.get('description', 'Nessuna descrizione')}
+                - 🎨 Colore: {selected_group.get('color', '#28A745')}
+                - 👥 Lead assegnati: {len([l for l in self.db.get_leads() if l.get('group_id') == selected_group_id])}
+                - 👤 Utenti assegnati: {len(self.db.get_user_lead_groups(selected_group_id))}
+                """)
                 
-                new_color = st.color_picker(
-                    "Colore",
-                    value=selected_group.get('color', '#28A745'),
-                    help="Colore del gruppo"
-                )
-                
-                new_is_active = st.checkbox(
-                    "Gruppo Attivo",
-                    value=selected_group.get('is_active', True),
-                    help="Se il gruppo è attivo"
-                )
-                
-                col1, col2, col3 = st.columns(3)
+                col1, col2, col3 = st.columns([1, 1, 2])
                 
                 with col1:
-                    update_button = st.form_submit_button(
-                        "💾 Aggiorna",
-                        use_container_width=True
-                    )
-                
-                with col2:
-                    delete_button = st.form_submit_button(
-                        "🗑️ Elimina",
-                        use_container_width=True
-                    )
-                
-                with col3:
-                    cancel_button = st.form_submit_button(
-                        "❌ Annulla",
-                        use_container_width=True
-                    )
-                
-                if update_button:
-                    # Aggiorna il gruppo
-                    group_data = {
-                        'name': new_name.strip(),
-                        'description': new_description.strip(),
-                        'color': new_color,
-                        'is_active': new_is_active
-                    }
-                    
-                    success = self.db.update_lead_group(selected_group_id, group_data)
-                    
-                    if success:
-                        st.success(f"✅ Gruppo '{new_name}' aggiornato con successo!")
-                        
-                        # Log attività
-                        self.db.log_activity(
-                            user_id=self.current_user['user_id'],
-                            action='update',
-                            entity_type='lead_group',
-                            entity_id=selected_group_id,
-                            details=f"Aggiornato gruppo '{new_name}'"
-                        )
-                        
-                        st.rerun()
-                    else:
-                        st.error("❌ Errore nell'aggiornamento del gruppo. Riprova.")
-                
-                if delete_button:
-                    # Conferma eliminazione
-                    st.warning("⚠️ Sei sicuro di voler eliminare questo gruppo?")
-                    
-                    if st.button("🗑️ Conferma Eliminazione", type="primary"):
+                    if st.button("✅ Conferma Eliminazione", type="primary", width='stretch'):
                         success = self.db.delete_lead_group(selected_group_id)
                         
                         if success:
@@ -829,9 +788,105 @@ class LeadGroupManagement:
                                 details=f"Eliminato gruppo '{selected_group['name']}'"
                             )
                             
+                            # Pulisci session state
+                            del st.session_state['confirm_delete_group']
+                            del st.session_state['selected_group_id']
+                            
                             st.rerun()
                         else:
                             st.error("❌ Errore nell'eliminazione del gruppo. Riprova.")
+                
+                with col2:
+                    if st.button("❌ Annulla", width='stretch'):
+                        del st.session_state['confirm_delete_group']
+                        st.rerun()
+                
+                with col3:
+                    st.info("💡 **Suggerimento**: Prima di eliminare un gruppo, assicurati che non abbia lead o utenti critici assegnati.")
+            
+            else:
+                # Form di modifica gruppo
+                st.markdown(f"### ✏️ Modifica Gruppo: {selected_group['name']}")
+                
+                with st.form("edit_group_form"):
+                    new_name = st.text_input(
+                        "Nome Gruppo",
+                        value=selected_group['name'],
+                        help="Nome del gruppo"
+                    )
+                    
+                    new_description = st.text_area(
+                        "Descrizione",
+                        value=selected_group.get('description', ''),
+                        help="Descrizione del gruppo"
+                    )
+                    
+                    new_color = st.color_picker(
+                        "Colore",
+                        value=selected_group.get('color', '#28A745'),
+                        help="Colore del gruppo"
+                    )
+                    
+                    new_is_active = st.checkbox(
+                        "Gruppo Attivo",
+                        value=selected_group.get('is_active', True),
+                        help="Se il gruppo è attivo"
+                    )
+                    
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        update_button = st.form_submit_button(
+                            "💾 Aggiorna",
+                            width='stretch'
+                        )
+                    
+                    with col2:
+                        delete_button = st.form_submit_button(
+                            "🗑️ Elimina",
+                            width='stretch'
+                        )
+                    
+                    with col3:
+                        cancel_button = st.form_submit_button(
+                            "❌ Annulla",
+                            width='stretch'
+                        )
+                    
+                    if update_button:
+                        # Aggiorna il gruppo
+                        group_data = {
+                            'name': new_name.strip(),
+                            'description': new_description.strip(),
+                            'color': new_color,
+                            'is_active': new_is_active
+                        }
+                        
+                        success = self.db.update_lead_group(selected_group_id, group_data)
+                        
+                        if success:
+                            st.success(f"✅ Gruppo '{new_name}' aggiornato con successo!")
+                            
+                            # Log attività
+                            self.db.log_activity(
+                                user_id=self.current_user['user_id'],
+                                action='update',
+                                entity_type='lead_group',
+                                entity_id=selected_group_id,
+                                details=f"Aggiornato gruppo '{new_name}'"
+                            )
+                            
+                            st.rerun()
+                        else:
+                            st.error("❌ Errore nell'aggiornamento del gruppo. Riprova.")
+                    
+                    if delete_button:
+                        st.session_state['confirm_delete_group'] = True
+                        st.rerun()
+                    
+                    if cancel_button:
+                        del st.session_state['selected_group_id']
+                        st.rerun()
                             
         except Exception as e:
             st.error(f"❌ Errore nella gestione del gruppo: {e}")
