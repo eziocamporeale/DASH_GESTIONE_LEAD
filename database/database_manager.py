@@ -1318,7 +1318,7 @@ class DatabaseManager:
             return rows_affected > 0
     
     def delete_user(self, user_id: int) -> bool:
-        """Elimina un utente"""
+        """Elimina un utente e tutti i suoi riferimenti"""
         if self.use_supabase:
             try:
                 # Prima verifica se l'utente è un admin
@@ -1336,6 +1336,10 @@ class DatabaseManager:
                             logger.warning(f"❌ Impossibile eliminare l'ultimo admin (ID: {user_id})")
                             return False
                 
+                # Pulisci tutti i riferimenti prima di eliminare l'utente
+                self._cleanup_user_references(user_id)
+                
+                # Ora elimina l'utente
                 result = self.supabase.table('users').delete().eq('id', user_id).execute()
                 return len(result.data) > 0
             except Exception as e:
@@ -1345,6 +1349,50 @@ class DatabaseManager:
             query = "DELETE FROM users WHERE id = ?"
             rows_affected = self.execute_update(query, (user_id,))
             return rows_affected > 0
+    
+    def _cleanup_user_references(self, user_id: int):
+        """Pulisce tutti i riferimenti a un utente prima dell'eliminazione"""
+        try:
+            # 1. Elimina activity_log
+            try:
+                self.supabase.table('activity_log').delete().eq('user_id', user_id).execute()
+                logger.info(f"✅ Puliti record activity_log per utente {user_id}")
+            except Exception as e:
+                logger.warning(f"⚠️ Errore pulizia activity_log: {e}")
+            
+            # 2. Aggiorna leads (assigned_to -> NULL)
+            try:
+                self.supabase.table('leads').update({'assigned_to': None}).eq('assigned_to', user_id).execute()
+                logger.info(f"✅ Aggiornati leads per utente {user_id}")
+            except Exception as e:
+                logger.warning(f"⚠️ Errore aggiornamento leads: {e}")
+            
+            # 3. Aggiorna tasks (assigned_to -> NULL)
+            try:
+                self.supabase.table('tasks').update({'assigned_to': None}).eq('assigned_to', user_id).execute()
+                logger.info(f"✅ Aggiornati tasks per utente {user_id}")
+            except Exception as e:
+                logger.warning(f"⚠️ Errore aggiornamento tasks: {e}")
+            
+            # 4. Aggiorna created_by in users (se altri utenti sono stati creati da questo utente)
+            try:
+                self.supabase.table('users').update({'created_by': None}).eq('created_by', user_id).execute()
+                logger.info(f"✅ Aggiornati created_by per utente {user_id}")
+            except Exception as e:
+                logger.warning(f"⚠️ Errore aggiornamento created_by: {e}")
+            
+            # 5. Elimina user_lead_groups
+            try:
+                self.supabase.table('user_lead_groups').delete().eq('user_id', user_id).execute()
+                logger.info(f"✅ Puliti user_lead_groups per utente {user_id}")
+            except Exception as e:
+                logger.warning(f"⚠️ Errore pulizia user_lead_groups: {e}")
+            
+            logger.info(f"✅ Pulizia riferimenti completata per utente {user_id}")
+            
+        except Exception as e:
+            logger.error(f"❌ Errore durante pulizia riferimenti utente {user_id}: {e}")
+            raise
     
     def update_user_last_login(self, user_id: int) -> bool:
         """Aggiorna l'ultimo login di un utente"""
