@@ -25,6 +25,10 @@ class BrokerLinksManager:
             st.session_state.broker_links_editing = None
         if 'broker_links_show_form' not in st.session_state:
             st.session_state.broker_links_show_form = False
+        if 'broker_links_confirm_delete' not in st.session_state:
+            st.session_state.broker_links_confirm_delete = None
+        if 'broker_links_delete_multiple' not in st.session_state:
+            st.session_state.broker_links_delete_multiple = False
     
     def render_broker_links_page(self):
         """Rende la pagina principale dei broker links"""
@@ -37,12 +41,21 @@ class BrokerLinksManager:
         # Azioni rapide
         self.render_quick_actions()
         
+        # Gestione conferma eliminazione singola
+        if st.session_state.broker_links_confirm_delete:
+            self.render_delete_confirmation()
+        
+        # Gestione eliminazione multipla
+        elif st.session_state.broker_links_delete_multiple:
+            self.render_delete_multiple_confirmation()
+        
         # Form per aggiungere/modificare
-        if st.session_state.broker_links_show_form:
+        elif st.session_state.broker_links_show_form:
             self.render_broker_link_form()
         
         # Tabella dei link broker
-        self.render_broker_links_table()
+        else:
+            self.render_broker_links_table()
     
     def render_stats(self):
         """Rende le statistiche dei broker links"""
@@ -93,22 +106,23 @@ class BrokerLinksManager:
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            if st.button("➕ Nuovo Link Broker", use_container_width=True, type="primary"):
+            if st.button("➕ Nuovo Link Broker", width='stretch', type="primary"):
                 st.session_state.broker_links_show_form = True
                 st.session_state.broker_links_editing = None
                 st.rerun()
         
         with col2:
-            if st.button("🔄 Aggiorna", use_container_width=True):
+            if st.button("🔄 Aggiorna", width='stretch'):
                 st.rerun()
         
         with col3:
-            if st.button("📊 Statistiche", use_container_width=True):
+            if st.button("📊 Statistiche", width='stretch'):
                 self.show_detailed_stats()
         
         with col4:
-            if st.button("🗑️ Elimina Multipli", use_container_width=True):
-                self.show_delete_multiple_modal()
+            if st.button("🗑️ Elimina Multipli", width='stretch'):
+                st.session_state.broker_links_delete_multiple = True
+                st.rerun()
     
     def render_broker_link_form(self):
         """Rende il form per aggiungere/modificare link broker"""
@@ -158,7 +172,7 @@ class BrokerLinksManager:
             
             with col3:
                 if editing_link and st.form_submit_button("🗑️ Elimina"):
-                    self.delete_broker_link(editing_link['id'])
+                    st.session_state.broker_links_confirm_delete = editing_link['id']
                     st.session_state.broker_links_show_form = False
                     st.session_state.broker_links_editing = None
                     st.rerun()
@@ -250,7 +264,7 @@ class BrokerLinksManager:
                 # Mostra la tabella
                 st.dataframe(
                     display_df,
-                    use_container_width=True,
+                    width='stretch',
                     hide_index=True
                 )
                 
@@ -277,93 +291,157 @@ class BrokerLinksManager:
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
-                if st.button("✏️ Modifica", key=f"edit_{selected_row['id']}", use_container_width=True):
+                if st.button("✏️ Modifica", key=f"edit_{selected_row['id']}", width='stretch'):
                     st.session_state.broker_links_editing = selected_row['id']
                     st.session_state.broker_links_show_form = True
                     st.rerun()
             
             with col2:
                 status_text = "Disattiva" if selected_row.get('is_active', True) else "Attiva"
-                if st.button(f"🔄 {status_text}", key=f"toggle_{selected_row['id']}", use_container_width=True):
+                if st.button(f"🔄 {status_text}", key=f"toggle_{selected_row['id']}", width='stretch'):
                     self.toggle_broker_link_status(selected_row['id'])
                     st.rerun()
             
             with col3:
-                if st.button("🗑️ Elimina", key=f"delete_{selected_row['id']}", use_container_width=True):
-                    self.show_delete_modal(selected_row)
+                if st.button("🗑️ Elimina", key=f"delete_{selected_row['id']}", width='stretch'):
+                    st.session_state.broker_links_confirm_delete = selected_row['id']
+                    st.rerun()
             
             with col4:
-                if st.button("🔗 Copia Link", key=f"copy_{selected_row['id']}", use_container_width=True):
+                if st.button("🔗 Copia Link", key=f"copy_{selected_row['id']}", width='stretch'):
                     st.write("Link copiato negli appunti!")
                     st.code(selected_row['affiliate_link'])
     
-    def show_delete_modal(self, broker_link: Dict):
-        """Mostra il modal di conferma eliminazione"""
-        st.warning("⚠️ Conferma Eliminazione")
-        st.write(f"Sei sicuro di voler eliminare il link per **{broker_link['broker_name']}**?")
-        st.write(f"Link: `{broker_link['affiliate_link']}`")
+    def render_delete_confirmation(self):
+        """Renderizza la conferma di eliminazione"""
+        broker_link_id = st.session_state.broker_links_confirm_delete
         
-        col1, col2 = st.columns(2)
+        # Ottieni i dati del broker link
+        broker_link = self.db.get_broker_link(broker_link_id)
+        
+        if not broker_link:
+            st.error("❌ Broker link non trovato")
+            del st.session_state.broker_links_confirm_delete
+            return
+        
+        st.markdown("### 🗑️ Conferma Eliminazione Broker Link")
+        st.markdown("⚠️ **ATTENZIONE**: Questa azione è irreversibile!")
+        
+        st.markdown(f"""
+        **Broker Link da eliminare:**
+        - 🏢 Broker: {broker_link['broker_name']}
+        - 🔗 Link: `{broker_link['affiliate_link']}`
+        - ✅ Stato: {'Attivo' if broker_link.get('is_active', True) else 'Inattivo'}
+        - 📅 Creato: {broker_link.get('created_at', 'N/A')[:10] if broker_link.get('created_at') else 'N/A'}
+        """)
+        
+        col1, col2, col3 = st.columns([1, 1, 2])
         
         with col1:
-            if st.button("✅ Conferma Eliminazione", type="primary"):
-                if self.delete_broker_link(broker_link['id']):
-                    st.success("✅ Link broker eliminato con successo!")
+            if st.button("✅ Conferma Eliminazione", type="primary", width='stretch'):
+                if self.delete_broker_link(broker_link_id):
+                    st.success("✅ Broker link eliminato con successo!")
+                    
+                    # Pulisci session state
+                    del st.session_state.broker_links_confirm_delete
+                    
                     st.rerun()
                 else:
-                    st.error("❌ Errore eliminazione link broker")
+                    st.error("❌ Errore eliminazione broker link")
         
         with col2:
-            if st.button("❌ Annulla"):
+            if st.button("❌ Annulla", width='stretch'):
+                del st.session_state.broker_links_confirm_delete
                 st.rerun()
+        
+        with col3:
+            st.info("💡 **Suggerimento**: Una volta eliminato, il broker link non potrà essere recuperato.")
     
-    def show_delete_multiple_modal(self):
-        """Mostra il modal per eliminazione multipla"""
-        st.warning("⚠️ Eliminazione Multipla")
-        st.write("Seleziona i link broker da eliminare:")
+    def render_delete_multiple_confirmation(self):
+        """Renderizza la conferma di eliminazione multipla"""
+        st.markdown("### 🗑️ Eliminazione Multipla Broker Links")
+        st.markdown("⚠️ **ATTENZIONE**: Questa azione è irreversibile!")
         
         try:
             broker_links = self.db.get_broker_links(active_only=False)
             
             if not broker_links:
                 st.info("📭 Nessun link broker da eliminare")
+                st.session_state.broker_links_delete_multiple = False
                 return
+            
+            st.markdown("**Seleziona i link broker da eliminare:**")
             
             # Checkbox per selezione multipla
             selected_ids = []
             for link in broker_links:
                 if st.checkbox(
-                    f"{link['broker_name']} - {link['affiliate_link'][:50]}...",
+                    f"🏢 {link['broker_name']} - 🔗 {link['affiliate_link'][:50]}...",
                     key=f"delete_multiple_{link['id']}"
                 ):
                     selected_ids.append(link['id'])
             
             if selected_ids:
-                st.write(f"📋 Selezionati {len(selected_ids)} link per eliminazione")
+                st.markdown(f"**📋 Selezionati {len(selected_ids)} link per eliminazione**")
                 
-                col1, col2 = st.columns(2)
+                # Mostra anteprima dei link selezionati
+                st.markdown("**📋 Anteprima Link da Eliminare:**")
+                preview_data = []
+                for link in broker_links:
+                    if link['id'] in selected_ids:
+                        preview_data.append({
+                            'Broker': link['broker_name'],
+                            'Link': link['affiliate_link'][:60] + "..." if len(link['affiliate_link']) > 60 else link['affiliate_link'],
+                            'Stato': 'Attivo' if link.get('is_active', True) else 'Inattivo'
+                        })
+                
+                if preview_data:
+                    import pandas as pd
+                    df_preview = pd.DataFrame(preview_data)
+                    st.dataframe(df_preview, width='stretch', hide_index=True)
+                
+                col1, col2, col3 = st.columns([1, 1, 2])
                 
                 with col1:
-                    if st.button("🗑️ Elimina Selezionati", type="primary"):
+                    if st.button("🗑️ Elimina Selezionati", type="primary", width='stretch'):
                         success_count = 0
+                        failed_count = 0
+                        
                         for link_id in selected_ids:
                             if self.delete_broker_link(link_id):
                                 success_count += 1
+                            else:
+                                failed_count += 1
                         
-                        if success_count == len(selected_ids):
-                            st.success(f"✅ {success_count} link eliminati con successo!")
-                        else:
-                            st.warning(f"⚠️ {success_count}/{len(selected_ids)} link eliminati")
+                        if success_count > 0:
+                            st.success(f"✅ **{success_count}** link eliminati con successo!")
+                            if failed_count > 0:
+                                st.warning(f"⚠️ **{failed_count}** link non eliminati (errore)")
+                        
+                        # Pulisci session state
+                        st.session_state.broker_links_delete_multiple = False
                         st.rerun()
                 
                 with col2:
-                    if st.button("❌ Annulla"):
+                    if st.button("❌ Annulla", width='stretch'):
+                        st.session_state.broker_links_delete_multiple = False
                         st.rerun()
+                
+                with col3:
+                    st.info("💡 **Suggerimento**: Verifica attentamente la selezione prima di procedere.")
             else:
                 st.info("📝 Seleziona almeno un link per eliminare")
                 
+                col1, col2 = st.columns([1, 3])
+                
+                with col1:
+                    if st.button("❌ Annulla", width='stretch'):
+                        st.session_state.broker_links_delete_multiple = False
+                        st.rerun()
+                
         except Exception as e:
             st.error(f"❌ Errore caricamento link: {e}")
+            st.session_state.broker_links_delete_multiple = False
     
     def show_detailed_stats(self):
         """Mostra statistiche dettagliate"""
@@ -397,7 +475,7 @@ class BrokerLinksManager:
                 
                 st.dataframe(
                     df[['broker_name', 'affiliate_link', 'is_active', 'created_at']],
-                    use_container_width=True,
+                    width='stretch',
                     hide_index=True
                 )
             
