@@ -1250,29 +1250,54 @@ class DatabaseManager:
         """Aggiorna un utente esistente"""
         if self.use_supabase:
             try:
+                # FIX SICUREZZA: Aggiorna SOLO i campi forniti, non tutti
+                # Questo evita di sovrascrivere accidentalmente i dati esistenti
+                supabase_data = {}
+                
+                # Campi che possono essere aggiornati
+                if 'username' in user_data:
+                    supabase_data['username'] = user_data['username']
+                
+                if 'email' in user_data:
+                    supabase_data['email'] = user_data['email']
+                
+                if 'first_name' in user_data:
+                    supabase_data['first_name'] = user_data['first_name']
+                
+                if 'last_name' in user_data:
+                    supabase_data['last_name'] = user_data['last_name']
+                
+                if 'phone' in user_data:
+                    supabase_data['phone'] = user_data['phone']
+                
+                if 'role_id' in user_data:
+                    supabase_data['role_id'] = user_data['role_id']
+                
+                if 'department_id' in user_data:
+                    supabase_data['department_id'] = user_data['department_id']
+                
+                if 'is_active' in user_data:
+                    supabase_data['is_active'] = user_data['is_active']
+                
+                if 'is_admin' in user_data:
+                    supabase_data['is_admin'] = user_data['is_admin']
+                
+                if 'notes' in user_data:
+                    supabase_data['notes'] = user_data['notes']
+                
                 # Gestisce l'hashing della password se viene fornita in chiaro
-                password_hash = user_data.get('password_hash', '')
-                if not password_hash and 'password' in user_data:
-                    # Se non c'è password_hash ma c'è password, hashala
+                if 'password' in user_data and user_data['password']:
                     import bcrypt
                     password_bytes = user_data['password'].encode('utf-8')
                     salt = bcrypt.gensalt()
-                    password_hash = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
+                    supabase_data['password_hash'] = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
+                elif 'password_hash' in user_data and user_data['password_hash']:
+                    supabase_data['password_hash'] = user_data['password_hash']
                 
-                # Mappa i dati per la struttura corretta di Supabase
-                supabase_data = {
-                    'username': user_data.get('username', user_data.get('email', '')),
-                    'email': user_data.get('email', ''),
-                    'password_hash': password_hash,
-                    'first_name': user_data.get('first_name', ''),
-                    'last_name': user_data.get('last_name', ''),
-                    'phone': user_data.get('phone', ''),
-                    'role_id': user_data.get('role_id', 1),
-                    'is_active': user_data.get('is_active', True),
-                    'is_admin': user_data.get('is_admin', False),
-                    'notes': user_data.get('notes', ''),
-                    'department_id': user_data.get('department_id')
-                }
+                # Se non ci sono dati da aggiornare, return
+                if not supabase_data:
+                    logger.warning(f"⚠️ Nessun dato da aggiornare per utente ID: {user_id}")
+                    return False
                 
                 result = self.supabase.table('users').update(supabase_data).eq('id', user_id).execute()
                 return len(result.data) > 0

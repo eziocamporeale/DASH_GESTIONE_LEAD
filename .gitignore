@@ -173,3 +173,29 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# ===== SICUREZZA - File con dati sensibili =====
+# Password e credenziali
+*password*.py
+*credential*.py
+*secret*.py
+*CREDENTIAL*.txt
+*PASSWORD*.txt
+*CREDENZIALI*.txt
+*SECRET*.txt
+
+# File temporanei con credenziali
+*_password_*.py
+*_credential_*.py
+reset_*.py
+change_*.py
+
+# Report con dati sensibili
+*_REPORT.md
+*_FIX_*.md
+SECURITY_*.md
+
+# File di configurazione sensibili
+config_local.py
+.env.local
+secrets.yaml

@@ -46,6 +46,12 @@ class UserForm:
         roles = self.db.get_roles()
         departments = self.db.get_departments()
         
+        # SICUREZZA: Filtra i ruoli disponibili in base al ruolo dell'utente corrente
+        # Solo gli Admin possono assegnare il ruolo Admin
+        if self.current_user and self.current_user.get('role_name') != 'Admin':
+            # Rimuovi il ruolo Admin dalle opzioni disponibili per utenti non-admin
+            roles = [role for role in roles if role['name'] != 'Admin']
+        
         # Preparazione dati per selectbox
         roles_options = {role['name']: role['id'] for role in roles}
         departments_options = {dept['name']: dept['id'] for dept in departments}
@@ -112,6 +118,10 @@ class UserForm:
                     index=role_index,
                     help="Ruolo dell'utente nel sistema"
                 )
+                
+                # AVVISO DI SICUREZZA: Mostra warning se viene selezionato il ruolo Admin
+                if role == 'Admin':
+                    st.error("🚨 **ATTENZIONE!** Stai assegnando permessi di **AMMINISTRATORE COMPLETO**. Questo utente avrà accesso illimitato a tutti i dati e funzioni del sistema!")
             
             with col2:
                 # Dipartimento
