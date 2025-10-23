@@ -955,6 +955,20 @@ class DatabaseManager:
             rows_affected = self.execute_update(query, params)
             return rows_affected > 0
     
+    def get_task_by_id(self, task_id: int) -> Optional[Dict]:
+        """Recupera un task per ID"""
+        if self.use_supabase:
+            try:
+                result = self.supabase.table('tasks').select('*').eq('id', task_id).execute()
+                return result.data[0] if result.data else None
+            except Exception as e:
+                logger.error(f"❌ Errore get_task_by_id Supabase: {e}")
+                return None
+        else:
+            query = "SELECT * FROM tasks WHERE id = ?"
+            result = self.execute_query(query, (task_id,))
+            return result[0] if result else None
+    
     def delete_task(self, task_id: int) -> bool:
         """Elimina un task"""
         if self.use_supabase:

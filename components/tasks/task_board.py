@@ -428,15 +428,30 @@ class TaskBoard:
                 
                 # Invia notifica Telegram se il task è completato
                 if next_state['name'].lower() in ['completato', 'completed', 'fatto', 'done']:
-                    self._send_telegram_notification('task_completed', {
-                        'title': task.get('title', 'N/A'),
-                        'completed_by': self.current_user.get('first_name', 'N/A'),
-                        'completed_at': datetime.now().strftime('%d/%m/%Y %H:%M')
-                    })
+                    # Recupera i dettagli del task per la notifica
+                    task_details = self.db.get_task_by_id(task_id)
+                    if task_details:
+                        self._send_telegram_notification('task_completed', {
+                            'title': task_details.get('title', 'N/A'),
+                            'completed_by': self.current_user.get('first_name', 'N/A'),
+                            'completed_at': datetime.now().strftime('%d/%m/%Y %H:%M')
+                        })
             else:
                 st.error("❌ Errore durante l'aggiornamento")
         else:
             st.info("ℹ️ Task già nello stato finale")
+    
+    def _send_telegram_notification(self, notification_type: str, data: Dict):
+        """Invia notifica Telegram se configurato"""
+        try:
+            if self.telegram_manager and self.telegram_manager.is_configured:
+                success, message = self.telegram_manager.send_notification(notification_type, data)
+                if not success:
+                    # Log dell'errore ma non bloccare il processo
+                    print(f"⚠️ Errore notifica Telegram: {message}")
+        except Exception as e:
+            # Log dell'errore ma non bloccare il processo
+            print(f"⚠️ Errore invio notifica Telegram: {e}")
     
     def render_task_list(self, filters: Dict = None):
         """Renderizza la lista dei task in formato tabella"""
