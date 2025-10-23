@@ -221,6 +221,8 @@ class TelegramManager:
                 return self._format_new_task_message(data)
             elif notification_type == "task_completed":
                 return self._format_task_completed_message(data)
+            elif notification_type == "task_in_progress":
+                return self._format_task_in_progress_message(data)
             elif notification_type == "task_due_soon":
                 return self._format_task_due_soon_message(data)
             elif notification_type == "new_user":
@@ -340,6 +342,19 @@ class TelegramManager:
 📅 Completato il: {data.get('completed_at', 'N/A')}
 
 🎉 Ottimo lavoro!
+        """.strip()
+    
+    def _format_task_in_progress_message(self, data: Dict[str, Any]) -> str:
+        """Formatta messaggio per task in corso"""
+        return f"""
+🚀 *TASK IN CORSO*
+
+📋 *{data.get('title', 'N/A')}*
+👤 Avviato da: {data.get('started_by', 'N/A')}
+📅 Avviato il: {data.get('started_at', 'N/A')}
+📊 Stato: {data.get('state', 'N/A')}
+
+💪 Buon lavoro!
         """.strip()
     
     def _format_task_due_soon_message(self, data: Dict[str, Any]) -> str:

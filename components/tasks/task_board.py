@@ -426,15 +426,24 @@ class TaskBoard:
                     details=f"Task avanzato a {next_state['name']}"
                 )
                 
-                # Invia notifica Telegram se il task è completato
-                if next_state['name'].lower() in ['completato', 'completed', 'fatto', 'done']:
-                    # Recupera i dettagli del task per la notifica
-                    task_details = self.db.get_task_by_id(task_id)
-                    if task_details:
+                # Invia notifica Telegram per cambio stato
+                task_details = self.db.get_task_by_id(task_id)
+                if task_details:
+                    # Notifica per task completato
+                    if next_state['name'].lower() in ['completato', 'completed', 'fatto', 'done']:
                         self._send_telegram_notification('task_completed', {
                             'title': task_details.get('title', 'N/A'),
                             'completed_by': self.current_user.get('first_name', 'N/A'),
                             'completed_at': datetime.now().strftime('%d/%m/%Y %H:%M')
+                        })
+                    
+                    # Notifica per task in corso
+                    elif next_state['name'].lower() in ['in corso', 'in progress', 'working', 'lavorando']:
+                        self._send_telegram_notification('task_in_progress', {
+                            'title': task_details.get('title', 'N/A'),
+                            'started_by': self.current_user.get('first_name', 'N/A'),
+                            'started_at': datetime.now().strftime('%d/%m/%Y %H:%M'),
+                            'state': next_state['name']
                         })
             else:
                 st.error("❌ Errore durante l'aggiornamento")
