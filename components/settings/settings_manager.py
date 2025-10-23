@@ -20,6 +20,7 @@ from database.database_manager import DatabaseManager
 from components.auth.auth_manager import get_current_user
 from config import CUSTOM_COLORS
 from .excel_importer import render_excel_importer
+from components.telegram.telegram_settings_ui import TelegramSettingsUI
 
 class SettingsManager:
     """Gestisce le impostazioni del sistema"""
@@ -36,7 +37,7 @@ class SettingsManager:
         st.markdown("Gestisci le configurazioni del sistema")
         
         # Tab per diverse categorie di impostazioni
-        tab1, tab2, tab3, tab4, tab5 = st.tabs(["🏢 Azienda", "📧 Notifiche", "🔧 Sistema", "📊 Backup", "📊 Import Excel"])
+        tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["🏢 Azienda", "📧 Notifiche", "📱 Telegram", "🔧 Sistema", "📊 Backup", "📊 Import Excel"])
         
         with tab1:
             self.render_company_settings()
@@ -45,12 +46,15 @@ class SettingsManager:
             self.render_notification_settings()
         
         with tab3:
-            self.render_system_settings()
+            self.render_telegram_settings()
         
         with tab4:
-            self.render_backup_settings()
+            self.render_system_settings()
         
         with tab5:
+            self.render_backup_settings()
+        
+        with tab6:
             self.render_excel_import_settings()
     
     def render_company_settings(self):
@@ -264,6 +268,19 @@ class SettingsManager:
                         'notification_desktop': notification_desktop,
                         'notification_frequency': notification_frequency
                     })
+    
+    def render_telegram_settings(self):
+        """Renderizza le impostazioni Telegram"""
+        try:
+            # Inizializza l'interfaccia Telegram
+            telegram_ui = TelegramSettingsUI()
+            
+            # Renderizza le impostazioni Telegram
+            telegram_ui.render_telegram_settings()
+            
+        except Exception as e:
+            st.error(f"❌ Errore caricamento impostazioni Telegram: {e}")
+            st.info("💡 Assicurati che le tabelle Telegram siano state create nel database")
     
     def render_system_settings(self):
         """Renderizza le impostazioni di sistema"""

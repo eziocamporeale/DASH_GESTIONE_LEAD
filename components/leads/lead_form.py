@@ -18,6 +18,7 @@ sys.path.append(str(current_dir))
 from database.database_manager import DatabaseManager
 from components.auth.auth_manager import get_current_user
 from config import CUSTOM_COLORS
+from components.telegram.telegram_manager import TelegramManager
 
 class LeadForm:
     """Gestisce il form per inserimento e modifica lead"""
@@ -26,6 +27,7 @@ class LeadForm:
         """Inizializza il form lead"""
         self.db = DatabaseManager()
         self.current_user = get_current_user()
+        self.telegram_manager = TelegramManager()
     
     def render_lead_form(self, lead_data: Optional[Dict] = None, mode: str = "create"):
         """
@@ -306,6 +308,18 @@ class LeadForm:
                             details=f"Creato nuovo lead: {first_name} {last_name}"
                         )
                         
+                        # Invia notifica Telegram
+                        self._send_telegram_notification('new_lead', {
+                            'nome': f"{first_name} {last_name}",
+                            'email': email,
+                            'telefono': phone,
+                            'broker': company,
+                            'fonte': source_name,
+                            'priority': priority_name,
+                            'note': notes,
+                            'created_by': self.current_user.get('first_name', 'N/A')
+                        })
+                        
                         return lead_id
                     else:
                         st.error("❌ Errore durante la creazione del lead")
@@ -334,6 +348,18 @@ class LeadForm:
                 return None
         
         return None
+    
+    def _send_telegram_notification(self, notification_type: str, data: Dict):
+        """Invia notifica Telegram se configurato"""
+        try:
+            if self.telegram_manager and self.telegram_manager.is_configured:
+                success, message = self.telegram_manager.send_notification(notification_type, data)
+                if not success:
+                    # Log dell'errore ma non bloccare il processo
+                    print(f"⚠️ Errore notifica Telegram: {message}")
+        except Exception as e:
+            # Log dell'errore ma non bloccare il processo
+            print(f"⚠️ Errore invio notifica Telegram: {e}")
 
 def render_lead_form_wrapper(lead_data: Optional[Dict] = None, mode: str = "create"):
     """Wrapper per renderizzare il form lead"""
