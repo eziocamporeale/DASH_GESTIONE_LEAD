@@ -20,6 +20,7 @@ sys.path.append(str(current_dir))
 
 from database.database_manager import DatabaseManager
 from config import AUTH_CONFIG
+from components.telegram.telegram_manager import TelegramManager
 
 # Configurazione logging
 logger = logging.getLogger(__name__)
@@ -32,6 +33,7 @@ class AuthManager:
         self.db = DatabaseManager()
         self.session_key = AUTH_CONFIG['cookie_name']
         self.session_timeout = timedelta(days=AUTH_CONFIG['cookie_expiry_days'])
+        self.telegram_manager = TelegramManager()
         
         # Inizializza la sessione se non esiste
         if self.session_key not in st.session_state:
@@ -81,6 +83,14 @@ class AuthManager:
                 details=f"Login effettuato da {username}"
             )
             
+            # Invia notifica Telegram per login
+            self._send_telegram_notification('user_login', {
+                'username': username,
+                'first_name': user['first_name'],
+                'last_name': user['last_name'],
+                'login_time': datetime.now().strftime('%d/%m/%Y %H:%M')
+            })
+            
             # Ottieni il nome del ruolo
             role_name = self._get_role_name(user['role_id'])
             
@@ -113,6 +123,18 @@ class AuthManager:
         except Exception as e:
             logger.error(f"Errore durante il login: {e}")
             return None
+    
+    def _send_telegram_notification(self, notification_type: str, data: Dict):
+        """Invia notifica Telegram se configurato"""
+        try:
+            if self.telegram_manager and self.telegram_manager.is_configured:
+                success, message = self.telegram_manager.send_notification(notification_type, data)
+                if not success:
+                    # Log dell'errore ma non bloccare il processo
+                    logger.warning(f"⚠️ Errore notifica Telegram: {message}")
+        except Exception as e:
+            # Log dell'errore ma non bloccare il processo
+            logger.warning(f"⚠️ Errore invio notifica Telegram: {e}")
     
     def logout(self):
         """Effettua il logout dell'utente corrente"""
