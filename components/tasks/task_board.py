@@ -19,6 +19,7 @@ sys.path.append(str(current_dir))
 from database.database_manager import DatabaseManager
 from components.auth.auth_manager import get_current_user
 from config import CUSTOM_COLORS
+from components.telegram.telegram_manager import TelegramManager
 
 class TaskBoard:
     """Gestisce la board Kanban dei task"""
@@ -27,6 +28,7 @@ class TaskBoard:
         """Inizializza la board task"""
         self.db = DatabaseManager()
         self.current_user = get_current_user()
+        self.telegram_manager = TelegramManager()
     
     def render_reset_section(self):
         """Renderizza la sezione di reset task con controlli di sicurezza"""
@@ -423,6 +425,14 @@ class TaskBoard:
                     entity_id=task_id,
                     details=f"Task avanzato a {next_state['name']}"
                 )
+                
+                # Invia notifica Telegram se il task è completato
+                if next_state['name'].lower() in ['completato', 'completed', 'fatto', 'done']:
+                    self._send_telegram_notification('task_completed', {
+                        'title': task.get('title', 'N/A'),
+                        'completed_by': self.current_user.get('first_name', 'N/A'),
+                        'completed_at': datetime.now().strftime('%d/%m/%Y %H:%M')
+                    })
             else:
                 st.error("❌ Errore durante l'aggiornamento")
         else:
