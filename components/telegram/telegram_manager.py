@@ -448,5 +448,7 @@ Buona giornata! 🚀
             'is_configured': self.is_configured,
             'bot_token_set': bool(self.bot_token),
             'chat_id_set': bool(self.chat_id),
-            'supabase_available': bool(self.supabase_manager)
+            'supabase_available': bool(self.supabase_manager),
+            'bot_token': self.bot_token or "",
+            'chat_id': self.chat_id or ""
         }

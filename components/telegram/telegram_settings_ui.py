@@ -84,14 +84,14 @@ class TelegramSettingsUI:
             with st.form("telegram_config_form"):
                 bot_token = st.text_input(
                     "🤖 Bot Token",
-                    value=status['bot_token'] or "",
+                    value=status.get('bot_token', "") or "",
                     type="password",
                     help="Token del bot ottenuto da @BotFather"
                 )
                 
                 chat_id = st.text_input(
                     "💬 Chat ID",
-                    value=status['chat_id'] or "",
+                    value=status.get('chat_id', "") or "",
                     help="ID del canale o gruppo dove inviare le notifiche"
                 )
                 
